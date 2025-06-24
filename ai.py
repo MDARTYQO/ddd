@@ -45,7 +45,7 @@ def build_system_prompt(topic, duration, speakers_config):
     return base_intro + output_structure
 
 def generate_script(topic, duration, speakers_config):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+   url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
     prompt = build_system_prompt(topic, duration, speakers_config)
     user_input = f"כתוב תסריט פודקאסט בנושא: {topic}"
     body = {
