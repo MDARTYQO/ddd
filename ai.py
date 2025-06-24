@@ -5,7 +5,6 @@ import base64
 GEMINI_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 
 def build_system_prompt(topic, duration, speakers_config):
-    # אפשר להרחיב לפי הצורך, כאן דוגמה בסיסית
     base_intro = f"""
 אתה מחולל תסריטי פודקאסטים בעברית. הנושא: {topic}
 אורך משוער: {duration} דקות.
@@ -55,7 +54,6 @@ def generate_script(topic, duration, speakers_config):
     resp = requests.post(url, json=body)
     resp.raise_for_status()
     data = resp.json()
-    # Gemini API מחזיר את התסריט כאן:
     script = data['candidates'][0]['content']['parts'][0]['text']
     return script
 
@@ -69,16 +67,17 @@ def generate_audio(script):
     resp = requests.post(url, json=body)
     resp.raise_for_status()
     data = resp.json()
-    # Gemini TTS מחזיר את השמע בבסיס 64
     audio_b64 = data['candidates'][0]['content']['parts'][0]['inlineData']['data']
     audio_bytes = base64.b64decode(audio_b64)
     return audio_bytes
 
 def main():
-    topic = input("נושא הפודקאסט: ")
-    duration = input("אורך (בדקות): ")
-    print("בחר תצורת דוברים: [male_female, two_males, two_females]")
-    speakers_config = input("תצורה: ")
+    if len(sys.argv) < 4:
+        print("Usage: python podcast_generator.py <topic> <duration> <speakers_config>")
+        sys.exit(1)
+    topic = sys.argv[1]
+    duration = sys.argv[2]
+    speakers_config = sys.argv[3]
     print("יוצר תסריט...")
     script = generate_script(topic, duration, speakers_config)
     print("התסריט נוצר:\n")
