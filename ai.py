@@ -41,7 +41,7 @@ def build_system_prompt(topic, duration, speakers_config):
    * The entire text will be in Hebrew, without Nikkud (vocalization).
 """
     return base_intro + output_structure
-
+    
 def generate_script(topic, duration, speakers_config):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     prompt = build_system_prompt(topic, duration, speakers_config)
@@ -53,6 +53,7 @@ def generate_script(topic, duration, speakers_config):
         ]
     }
     resp = requests.post(url, json=body)
+    print("Gemini API response:", resp.text)  # הוסף שורה זו
     resp.raise_for_status()
     data = resp.json()
     script = data['candidates'][0]['content']['parts'][0]['text']
