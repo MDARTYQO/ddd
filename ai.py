@@ -48,12 +48,11 @@ def generate_script(topic, duration, speakers_config):
     user_input = f"כתוב תסריט פודקאסט בנושא: {topic}"
     body = {
         "contents": [
-            {"role": "system", "parts": [{"text": prompt}]},
-            {"role": "user", "parts": [{"text": user_input}]}
+            {"role": "user", "parts": [{"text": prompt + "\n" + user_input}]}
         ]
     }
     resp = requests.post(url, json=body)
-    print("Gemini API response:", resp.text)  # הוסף שורה זו
+    print("Gemini API response:", resp.text)
     resp.raise_for_status()
     data = resp.json()
     script = data['candidates'][0]['content']['parts'][0]['text']
