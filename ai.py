@@ -1,6 +1,7 @@
 import requests
 import json
 import base64
+import sys
 
 GEMINI_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 
