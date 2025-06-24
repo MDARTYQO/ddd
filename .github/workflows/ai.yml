@@ -15,4 +15,4 @@ jobs:
       - name: Install dependencies
         run: pip install requests
       - name: Run podcast generator
-        run: python podcast_generator.py
+        run: python ai.py
