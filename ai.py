@@ -3,7 +3,7 @@ import json
 import base64
 import sys
 
-GEMINI_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
+GEMINI_API_KEY = "AIzaSyBXphJJz9ygt1Jorl15H82HmSgiSyTk7AM"
 
 def build_system_prompt(topic, duration, speakers_config):
     base_intro = f"""
