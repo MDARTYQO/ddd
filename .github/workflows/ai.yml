@@ -2,6 +2,19 @@ name: Podcast Generator
 
 on:
   workflow_dispatch:
+    inputs:
+      topic:
+        description: 'נושא הפודקאסט'
+        required: true
+        default: 'האם בינה מלאכותית מסוכנת?'
+      duration:
+        description: 'אורך (בדקות)'
+        required: true
+        default: '5'
+      speakers_config:
+        description: 'תצורת דוברים (male_female, two_males, two_females)'
+        required: true
+        default: 'male_female'
 
 jobs:
   generate:
@@ -15,4 +28,5 @@ jobs:
       - name: Install dependencies
         run: pip install requests
       - name: Run podcast generator
-        run: python ai.py
+        run: |
+          python ai.py "${{ github.event.inputs.topic }}" "${{ github.event.inputs.duration }}" "${{ github.event.inputs.speakers_config }}"
