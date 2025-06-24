@@ -30,3 +30,8 @@ jobs:
       - name: Run podcast generator
         run: |
           python ai.py "${{ github.event.inputs.topic }}" "${{ github.event.inputs.duration }}" "${{ github.event.inputs.speakers_config }}"
+      - name: Upload podcast.wav
+        uses: actions/upload-artifact@v4
+        with:
+          name: podcast-audio
+          path: podcast.wav
