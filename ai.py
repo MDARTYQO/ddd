@@ -66,6 +66,7 @@ def generate_audio(script):
         ]
     }
     resp = requests.post(url, json=body)
+    print(resp.text) 
     resp.raise_for_status()
     data = resp.json()
     audio_b64 = data['candidates'][0]['content']['parts'][0]['inlineData']['data']
