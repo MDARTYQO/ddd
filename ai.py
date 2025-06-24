@@ -5,6 +5,8 @@ import sys
 
 GEMINI_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 
+GENAI_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
+
 def build_system_prompt(topic, duration, speakers_config):
     base_intro = f"""
 אתה מחולל תסריטי פודקאסטים בעברית. הנושא: {topic}
@@ -41,7 +43,7 @@ def build_system_prompt(topic, duration, speakers_config):
    * The entire text will be in Hebrew, without Nikkud (vocalization).
 """
     return base_intro + output_structure
-    
+
 def generate_script(topic, duration, speakers_config):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     prompt = build_system_prompt(topic, duration, speakers_config)
@@ -58,24 +60,35 @@ def generate_script(topic, duration, speakers_config):
     script = data['candidates'][0]['content']['parts'][0]['text']
     return script
 
-def generate_audio(script):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-tts:generateContent?key={GEMINI_API_KEY}"
-    body = {
-        "contents": [
-            {"role": "user", "parts": [{"text": script}]}
-        ]
-    }
-    resp = requests.post(url, json=body)
-    print(resp.text) 
-    resp.raise_for_status()
-    data = resp.json()
-    audio_b64 = data['candidates'][0]['content']['parts'][0]['inlineData']['data']
-    audio_bytes = base64.b64decode(audio_b64)
-    return audio_bytes
+def wave_file(filename, pcm, channels=1, rate=24000, sample_width=2):
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(rate)
+        wf.writeframes(pcm)
+
+def generate_audio(script, api_key):
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash-preview-tts",
+        contents=script,
+        config=types.GenerateContentConfig(
+            response_modalities=["AUDIO"],
+            speech_config=types.SpeechConfig(
+                voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                        voice_name='Kore',  # אפשר לשנות לקול אחר
+                    )
+                )
+            ),
+        )
+    )
+    data = response.candidates[0].content.parts[0].inline_data.data
+    return data
 
 def main():
     if len(sys.argv) < 4:
-        print("Usage: python podcast_generator.py <topic> <duration> <speakers_config>")
+        print("Usage: python podcast_netbookllm.py <topic> <duration> <speakers_config>")
         sys.exit(1)
     topic = sys.argv[1]
     duration = sys.argv[2]
@@ -87,9 +100,8 @@ def main():
     with open("podcast_script.txt", "w", encoding="utf-8") as f:
         f.write(script)
     print("יוצר שמע...")
-    audio = generate_audio(script)
-    with open("podcast.wav", "wb") as f:
-        f.write(audio)
+    audio = generate_audio(script, GENAI_API_KEY)
+    wave_file("podcast.wav", audio)
     print("הקובץ podcast.wav נוצר!")
 
 if __name__ == "__main__":
