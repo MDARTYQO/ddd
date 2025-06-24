@@ -4,7 +4,7 @@ import sys
 import wave
 import os
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "הכנס_כאן_את_המפתח_שלך")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw")
 
 def build_system_prompt(topic, duration, speakers_config):
     base_intro = f"""
