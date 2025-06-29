@@ -4,12 +4,12 @@ from selenium.webdriver.common.keys import Keys
 import time
 
 # הגדר את פרטי ההתחברות שלך
-USERNAME = "your_email@example.com"
-PASSWORD = "your_password"
+USERNAME = "mz581834mz@gmail.com"
+PASSWORD = "MZ0733581834MZ"
 
 # כתובת האתר
 LOGIN_URL = "https://aistodyo.com/login"
-API_KEYS_URL = "https://aistodyo.com/account/api-keys"
+API_KEYS_URL = "https://aistudio.google.com/app/apikey?hl=he&_gl=1*tfou4c*_ga*MTQwMTI5Mjk5OC4xNzQ3NzI1MDA3*_ga_P1DBVKWT6V*czE3NDc3MjUwMDckbzEkZzEkdDE3NDc3MjUwMjYkajQxJGwwJGg1NDM5Nzc3MjgkZGxCM3E0ekViZ1ZSZE1jR2gtbzlLLS04NndWTVcyQmFVNkE."
 
 driver = webdriver.Chrome()
 driver.get(LOGIN_URL)
