@@ -3,7 +3,7 @@ import base64
 import sys
 import os
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw")
+GEMINI_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 
 def generate_image(prompt, api_key):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
