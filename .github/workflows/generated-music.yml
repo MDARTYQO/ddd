@@ -1,0 +1,36 @@
+name: Generate music
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Text prompt for image generation'
+        required: true
+        default: 'A cat riding a bicycle in Paris'
+
+jobs:
+  generate-music:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install google-genai pillow
+
+      - name: Run image generator
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python music.py "${{ github.event.inputs.prompt }}"
+      
+      - name: Upload generated image
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-music
+          path: bouncy_track.wav
