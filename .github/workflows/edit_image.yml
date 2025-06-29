@@ -1,0 +1,40 @@
+name: Edit Image with Gemini
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_url:
+        description: 'Image URL'
+        required: true
+        default: 'https://example.com/image.png'
+      prompt:
+        description: 'Edit prompt'
+        required: true
+        default: 'Add a llama next to me'
+
+jobs:
+  edit-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install google-genai pillow requests
+
+      - name: Run image edit
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          python edit_image.py "${{ github.event.inputs.image_url }}" "${{ github.event.inputs.prompt }}"
+
+      - name: Upload edited image
+        uses: actions/upload-artifact@v4
+        with:
+          name: edited-image
+          path: edited_image.png
