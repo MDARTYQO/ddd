@@ -1,4 +1,5 @@
 import requests
+import sys
 
 def generate_image(prompt, filename="image.png"):
     url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
@@ -13,5 +14,8 @@ def generate_image(prompt, filename="image.png"):
         print("שגיאה ביצירת תמונה:", response.status_code, response.text)
 
 if __name__ == "__main__":
-    prompt = input("הכנס תיאור לתמונה: ")
+    if len(sys.argv) < 2:
+        print("Usage: python image_generator.py <prompt>")
+        sys.exit(1)
+    prompt = sys.argv[1]
     generate_image(prompt)
