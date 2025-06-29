@@ -6,7 +6,7 @@ from PIL import Image
 from io import BytesIO
 import sys
 
-GOOGLE_API_KEY = "הכנס_כאן_את_המפתח_שלך"
+GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 def download_image(url):
