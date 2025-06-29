@@ -14,7 +14,7 @@ def generate_image(prompt, filename="gemini-native-image.png"):
         model="gemini-2.0-flash-preview-image-generation",
         contents=prompt,
         config=types.GenerateContentConfig(
-            response_modalities=['IMAGE']
+            response_modalities=['IMAGE', 'TEXT']
         )
     )
     for part in response.candidates[0].content.parts:
