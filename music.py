@@ -2,6 +2,7 @@ import asyncio
 from google import genai
 from google.genai import types
 import wave
+import os
 
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
