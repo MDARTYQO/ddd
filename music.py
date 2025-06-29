@@ -10,13 +10,13 @@ client = genai.Client(http_options={'api_version': 'v1alpha'})
 
 async def main():
     async def receive_audio(session):
-        """Process incoming audio and save to file."""
         wf = wave.open("bouncy_track.wav", "wb")
-        wf.setnchannels(2)  # סטריאו
-        wf.setsampwidth(2)  # 16 ביט
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
         wf.setframerate(44100)
         try:
             async for message in session.receive():
+                print("התקבלה הודעה מהשרת")
                 if message.server_content.audio_chunks:
                     audio_data = message.server_content.audio_chunks[0].data
                     wf.writeframes(audio_data)
