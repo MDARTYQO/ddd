@@ -1,17 +1,29 @@
-import requests
+from google import genai
+from google.genai import types
+from PIL import Image
+from io import BytesIO
 import sys
+import os
 
-def generate_image(prompt, filename="image.png"):
-    url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
-    headers = {"accept": "image/png"}
-    data = {"inputs": prompt}
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        with open(filename, "wb") as f:
-            f.write(response.content)
-        print(f"הקובץ {filename} נוצר!")
-    else:
-        print("שגיאה ביצירת תמונה:", response.status_code, response.text)
+GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
+os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+
+def generate_image(prompt, filename="gemini-native-image.png"):
+    client = genai.Client()
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-preview-image-generation",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_modalities=['IMAGE']
+        )
+    )
+    for part in response.candidates[0].content.parts:
+        if part.inline_data is not None:
+            image = Image.open(BytesIO(part.inline_data.data))
+            image.save(filename)
+            print(f"הקובץ {filename} נוצר!")
+            return
+    print("לא התקבלה תמונה מה-API.")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
