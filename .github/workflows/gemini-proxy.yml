@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Call Gemini API
         run: |
-          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=PASTE_YOUR_API_KEY_HERE" \
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw" \
             -H "Content-Type: application/json" \
             -d "{\"contents\": [{\"parts\": [{\"text\": \"${{ github.event.inputs.prompt }}\"}]}]}")
           echo "$RESPONSE" > gemini_response.json
