@@ -1,0 +1,31 @@
+name: Gemini API Proxy
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Prompt to send to Gemini'
+        required: true
+        type: string
+
+jobs:
+  call-gemini:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Gemini API
+        id: gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "===> Sending prompt to Gemini..."
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=$GEMINI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"contents": [{"parts": [{"text": "${{ github.event.inputs.prompt }}"}]}]}' )
+          echo "===> Gemini response:"
+          echo "$RESPONSE"
+          echo "$RESPONSE" > gemini_response.json
+      - name: Upload response artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-response
+          path: gemini_response.json
