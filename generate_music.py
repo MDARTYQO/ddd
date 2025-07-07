@@ -8,7 +8,7 @@ import time
 # שים לב: הטמעת מפתח API ישירות בקוד חושפת אותו לכל מי שיש לו גישה לקוד.
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 
-genai.configure(api_key==GOOGLE_API_KEY)
+genai.configure(api_key=GOOGLE_API_KEY)
 
 # --- בחירת המודל ליצירת מוזיקה ---
 # ודא שהמודל 'gemini-1.5-flash-music-001' זמין באזור שלך.
