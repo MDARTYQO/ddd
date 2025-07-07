@@ -8,10 +8,6 @@ import time
 # שים לב: הטמעת מפתח API ישירות בקוד חושפת אותו לכל מי שיש לו גישה לקוד.
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 
-if API_KEY == "הכנס_כאן_את_מפתח_ה_API_שלך" or not API_KEY:
-    print("שגיאה: אנא החלף את 'הכנס_כאן_את_מפתח_ה_API_שלך' במפתח ה-API האמיתי שלך בקוד.")
-    exit()
-
 genai.configure(api_key=API_KEY)
 
 # --- בחירת המודל ליצירת מוזיקה ---
