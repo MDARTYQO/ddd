@@ -1,36 +1,35 @@
-name: Generate music
+name: Generate Music
 
 on:
+  # הפעל את ה-workflow באופן ידני מטאב Actions בגיטהאב
   workflow_dispatch:
-    inputs:
-      prompt:
-        description: 'Text prompt for image generation'
-        required: true
-        default: 'A cat riding a bicycle in Paris'
 
 jobs:
-  generate-music:
-    runs-on: ubuntu-latest
+  generate:
+    runs-on: ubuntu-latest # בחר מערכת הפעלה לריצה
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4 # בדוק את הקוד מהריפוזיטורי
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x' # השתמש בגרסת פייתון 3 העדכנית ביותר
 
-      - name: Install dependencies
-        run: pip install google-genai pillow
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-generativeai # התקן את ספריית ה-API
 
-      - name: Run image generator
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python music.py "${{ github.event.inputs.prompt }}"
-      
-      - name: Upload generated image
-        uses: actions/upload-artifact@v4
-        with:
-          name: generated-music
-          path: bouncy_track.wav
+    - name: Run music generation script
+      run: python generate_music.py # הרץ את סקריפט הפייתון
+
+    # הערה: קובץ ה-MP3 שנוצר קיים רק בסביבת הריצה של ה-workflow.
+    # כדי לשמור אותו, תצטרך להוסיף שלב Upload Artifact.
+    # לדוגמה:
+    # - name: Upload generated track
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: generated-music-track
+    #     path: generated_track_*.mp3 # העלה את קובץ ה-MP3 שנוצר
