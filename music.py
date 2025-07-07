@@ -5,7 +5,7 @@ import wave
 import os
 
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+
 client = genai.Client(http_options={'api_version': 'v1alpha'})
 
 async def main():
