@@ -1,11 +1,12 @@
-name: Suno Song Generator
+name: Suno Song Generator (via REST API)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # מאפשר הפעלה ידנית של ה-workflow מתוך GitHub UI
 
 jobs:
   generate-song:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest # נשתמש ב-ubuntu, requests יעבוד כאן היטב
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -13,13 +14,220 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.10' # או גרסה גבוהה יותר, למשל '3.11', '3.12'
 
-      - name: Install suno-api
-        run: pip install suno-api
+      - name: Install dependencies
+        run: |
+          # התקנת ספריית suno-api, uvicorn, fastapi, ו-requests
+          pip install suno-api uvicorn fastapi requests
 
-      - name: Run Suno Song Script
-        run: python suno_song.py
+      - name: Start Suno API (Background)
+        # הגדרת משתנה הסביבה SUNO_COOKIE עבור תהליך ה-API
+        env:
+          # השתמש בעוגיה האמיתית שלך כאן. מומלץ להשתמש ב-GitHub Secrets.
+          # לצורך הדוגמה, הכנסתי את העוגיה שסיפקת ישירות.
+          # בתרחיש אמיתי, החלף זאת ב- ${{ secrets.SUNO_COOKIE }}
+          SUNO_COOKIE: cbda1568442d9391191970c30a84142a
+        run: |
+          # הפעלת uvicorn כדי להפעיל את שרת ה-REST של suno-api ברקע
+          # --host 0.0.0.0 הופך אותו לנגיש בתוך סביבת ה-runner
+          # הפניית פלט סטנדרטי ושגיאות לקובץ לוג
+          # שימוש ב-nohup כדי להבטיח שהוא ממשיך לרוץ גם לאחר שהמעטפת מסתיימת
+          # שמירת מזהה התהליך (PID) בקובץ כדי להרוג אותו מאוחר יותר
+          nohup uvicorn suno.api:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
+          echo $! > uvicorn_pid.txt
+          echo "Suno API started in background with PID $!"
+        shell: bash # שימוש ב-bash עבור nohup והרצה ברקע
+
+      - name: Wait for API to start
+        run: |
+          # בדיקת נקודת הקצה של הקרדיטים של ה-API עד שהיא מחזירה קוד סטטוס 200
+          # זה בודק אם שרת ה-API פועל ומגיב
+          echo "Waiting for Suno API to become available..."
+          for i in {1..60}; do # נסה עד 60 שניות
+            if curl -s http://localhost:8000/v1/credits > /dev/null; then
+              echo "API is available."
+              break
+            fi
+            echo "Attempt $i: API not ready yet. Waiting..."
+            sleep 1
+          done
+          # בדיקה אם ה-API אכן מוכן לאחר הלולאה
+          if ! curl -s http://localhost:8000/v1/credits > /dev/null; then
+            echo "Suno API did not start within the expected time."
+            exit 1 # כישלון במשימה אם ה-API לא עולה
+          fi
+        shell: bash
+
+      - name: Run Suno Client Script
+        run: |
+          # יצירת סקריפט הלקוח בפייתון שמתקשר עם ה-API המקומי
+          # סקריפט זה ישלח את בקשת היצירה, ימתין לסיום, ויוריד את התוצאה
+          cat << 'EOF' > suno_client_script.py
+import requests
+import time
+import os
+import urllib3
+import json
+import sys # ייבוא sys כדי לצאת עם קוד סטטוס
+
+# כיבוי אזהרות SSL (לא מומלץ בסביבה לא מאובטחת)
+# זה עשוי להיות נחוץ אם ה-audio_url מצביע על CDN עם בעיות SSL
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# כתובת ה-API המקומית
+API_BASE_URL = "http://localhost:8000/v1"
+
+# הגדר את המילים המותאמות אישית שלך כאן
+custom_lyrics = """
+[Verse 1]
+השמש זורחת, יום חדש מתחיל
+ציפורים מצייצות, בוקר כחול ורגיל
+אני מתעורר עם חיוך על הפנים
+מוכן ליום מלא הרפתקאות וצלילים
+
+[Chorus]
+מוזיקה בלב, קצב בנשמה
+כל העולם רוקד, אין שום בעיה
+קופץ ושר, מרגיש חופשי באוויר
+זה היום שלי, זה השיר שלי
+"""
+
+# הגדר את התגיות (סגנון מוזיקלי) כאן
+tags = "pop, upbeat, happy"
+
+print("יוצר שיר עם מילים מותאמות אישית דרך ה-API המקומי...")
+
+# יצירת שיר חדש דרך ה-API
+# ה-API של imyizhang/Suno-API מקבל prompt, custom, tags, instrumental
+payload = {
+    "prompt": custom_lyrics,
+    "custom": True, # שימו לב: התיעוד של ה-API משתמש ב-"custom", לא ב-"customized"
+    "tags": tags,
+    "instrumental": False,
+}
+
+try:
+    # שליחת בקשת היצירה ל-API המקומי
+    # verify=False עשוי לא להיות נחוץ עבור localhost, אך כלול למקרה שיש בעיות SSL
+    response = requests.post(f"{API_BASE_URL}/songs", json=payload, verify=False)
+    response.raise_for_status() # העלאת חריגה עבור קודי סטטוס שגויים
+
+    # ה-API מחזיר רשימה של שירים, גם עבור בקשת יצירה בודדת
+    song_response_list = response.json()
+
+    if not song_response_list:
+        raise Exception("API did not return any songs.")
+
+    # קבלת נתוני השיר הראשון מהרשימה
+    clip_data = song_response_list[0]
+
+    clip_id = clip_data.get("id")
+    audio_url = clip_data.get("audio_url")
+    lyrics_from_api = clip_data.get("metadata", {}).get("prompt") # קבלת מילים מהמטאדאטה אם זמינות
+    status = clip_data.get("status")
+
+    print("השיר נוצר בהצלחה דרך ה-API!")
+    print("Song ID:", clip_id)
+    print("Audio URL:", audio_url)
+    print("Lyrics (from API metadata):", lyrics_from_api)
+    print("Initial Status:", status)
+
+    # בדיקת סטטוס השלמת השיר באמצעות ה-API
+    if clip_id and status != "complete":
+        print(f"Polling status for song ID: {clip_id}")
+        # הוספת טיימאאוט ללולאת ה-polling
+        timeout_seconds = 300 # המתנה של עד 5 דקות
+        start_time = time.time()
+        while status != "complete" and (time.time() - start_time) < timeout_seconds:
+            time.sleep(5) # המתנה של 5 שניות לפני בדיקה נוספת
+            try:
+                status_response = requests.get(f"{API_BASE_URL}/song/{clip_id}", verify=False)
+                status_response.raise_for_status()
+                clip_data = status_response.json()
+                status = clip_data.get("status")
+                print(f"Current status: {status}")
+                if status == "error":
+                    error_message = clip_data.get("metadata", {}).get("error_message", "Unknown error")
+                    raise Exception(f"Song generation failed with status 'error': {error_message}")
+            except requests.exceptions.RequestException as e:
+                print(f"Error polling status: {e}. Retrying...")
+            except Exception as e:
+                 print(f"An unexpected error occurred during polling: {e}")
+                 break # יציאה מה-polling במקרה של שגיאות לא צפויות
+
+        if status != "complete":
+             raise Exception(f"Song generation did not complete within {timeout_seconds} seconds. Final status: {status}")
+
+
+    # הורדת השיר (mp3) באמצעות ה-audio_url
+    # ה-audio_url הוא ככל הנראה קישור ישיר ל-CDN של Suno, לא מוגש על ידי ה-API המקומי.
+    if audio_url:
+        print(f"מוריד שיר מ: {audio_url}")
+        try:
+            # הורדת קובץ ה-MP3
+            # השתמש ב-verify=False אם נחוץ עבור כתובת ה-CDN עקב בעיות SSL
+            r = requests.get(audio_url, stream=True, verify=False)
+            r.raise_for_status() # העלאת חריגה עבור קודי סטטוס שגויים
+
+            # קביעת שם הקובץ מכתובת ה-URL או שימוש ב-clip_id
+            filename = f"song_{clip_id}.mp3" if clip_id else "generated_song.mp3"
+            with open(filename, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"השיר נשמר כקובץ: {filename}")
+
+        except Exception as e:
+            print(f"אירעה שגיאה בעת הורדת השיר: {e}")
+    else:
+        print("לא התקבל audio_url בתגובת ה-API לאחר השלמה.")
+
+
+    # שמירת המילים לקובץ טקסט
+    # השתמש במילים מתגובת ה-API אם זמינות, אחרת השתמש במילים המקוריות שהגדרת
+    lyrics_to_save = lyrics_from_api if lyrics_from_api else custom_lyrics
+    lyrics_filename = f"lyrics_{clip_id}.txt" if clip_id else "lyrics.txt"
+    with open(lyrics_filename, "w", encoding="utf-8") as f:
+        f.write(lyrics_to_save)
+    print(f"המילים נשמרו כקובץ: {lyrics_filename}")
+
+
+    # בדיקת קרדיטים דרך ה-API
+    print("בודק קרדיטים דרך ה-API...")
+    try:
+        credits_response = requests.get(f"{API_BASE_URL}/credits", verify=False)
+        credits_response.raise_for_status()
+        credits_data = credits_response.json()
+        credits_left = credits_data.get("total_credits_left")
+        if credits_left is not None:
+            print(f"נותרו לך {credits_left} קרדיטים.")
+        else:
+            print("לא ניתן לקבל מידע על קרדיטים מה-API.")
+    except Exception as e:
+        print(f"אירעה שגיאה בעת בדיקת קרדיטים דרך ה-API: {e}")
+
+except Exception as e:
+    print(f"אירעה שגיאה כללית: {e}")
+    # יציאה עם קוד סטטוס שאינו אפס כדי לציין כישלון ב-GitHub Actions
+    sys.exit(1)
+
+EOF
+          python suno_client_script.py
+
+      - name: Stop Suno API
+        if: always() # הפעלת שלב זה תמיד, גם אם שלבים קודמים נכשלים
+        run: |
+          # קריאת ה-PID מהקובץ והריגת תהליך הרקע
+          if [ -f uvicorn_pid.txt ]; then
+            API_PID=$(cat uvicorn_pid.txt)
+            echo "Stopping API process with PID: $API_PID"
+            kill $API_PID
+            # אופציונלי: המתנה לסיום התהליך בצורה מסודרת
+            # wait $API_PID 2>/dev/null
+          else
+            echo "API PID file not found."
+          fi
+        shell: bash
 
       - name: Upload song artifact
         uses: actions/upload-artifact@v4
@@ -27,4 +235,4 @@ jobs:
           name: suno-song
           path: |
             *.mp3
-            lyrics.txt
+            *.txt # העלאת קבצי mp3 ו-txt
