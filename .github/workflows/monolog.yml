@@ -16,9 +16,17 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests 
+        run: pip install requests
+
+      - name: List files
+        run: ls -l
+
+      - name: Print env
+        run: env
 
       - name: Run monologue script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python monolog.py
 
       - name: Upload monologue audio
