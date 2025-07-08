@@ -1,35 +1,33 @@
-name: Generate Music
+name: Suno Song Generator
 
 on:
-  # הפעל את ה-workflow באופן ידני מטאב Actions בגיטהאב
   workflow_dispatch:
 
 jobs:
-  generate:
-    runs-on: ubuntu-latest # בחר מערכת הפעלה לריצה
-
+  generate-song:
+    runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4 # בדוק את הקוד מהריפוזיטורי
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x' # השתמש בגרסת פייתון 3 העדכנית ביותר
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install google-generativeai # התקן את ספריית ה-API
+      - name: Install suno-api
+        run: pip install suno-api
 
-    - name: Run music generation script
-      run: python generate_music.py # הרץ את סקריפט הפייתון
+      - name: Run Suno Song Script
+        env:
+          SUNO_COOKIE: ${{ secrets.SUNO_COOKIE }}
+        run: |
+          python suno_song.py
 
-    # הערה: קובץ ה-MP3 שנוצר קיים רק בסביבת הריצה של ה-workflow.
-    # כדי לשמור אותו, תצטרך להוסיף שלב Upload Artifact.
-    # לדוגמה:
-    # - name: Upload generated track
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: generated-music-track
-    #     path: generated_track_*.mp3 # העלה את קובץ ה-MP3 שנוצר
+      - name: Upload song artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: suno-song
+          path: |
+            song.mp3
+            lyrics.txt
