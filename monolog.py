@@ -27,7 +27,7 @@ The speaker should imitate the speaking style, humor, and delivery of Amit Segal
     return base_intro
 
 def generate_monologue(topic, duration, famous_style=None):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyBNnR0YAg5Q6BTCc69lMkylugx3fduRE60"
     prompt = build_system_prompt(topic, duration, famous_style)
     body = {
         "systemInstruction": {"parts": [{"text": prompt}]},
