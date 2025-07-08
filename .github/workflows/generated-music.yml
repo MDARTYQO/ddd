@@ -1,11 +1,6 @@
-name: Suno Song Generator
-
-on:
-  workflow_dispatch:
-
 jobs:
   generate-song:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,15 +14,12 @@ jobs:
         run: pip install suno-api
 
       - name: Run Suno Song Script
-        env:
-          SUNO_COOKIE: ${{ secrets.SUNO_COOKIE }}
-        run: |
-          python suno_song.py
+        run: python suno_song.py
 
       - name: Upload song artifact
         uses: actions/upload-artifact@v4
         with:
           name: suno-song
           path: |
-            song.mp3
+            *.mp3
             lyrics.txt
