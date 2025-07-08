@@ -1,3 +1,8 @@
+name: Suno Song Generator
+
+on:
+  workflow_dispatch:
+
 jobs:
   generate-song:
     runs-on: windows-latest
