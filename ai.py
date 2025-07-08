@@ -6,7 +6,7 @@ import os
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBNnR0YAg5Q6BTCc69lMkylugx3fduRE60")
 
-def build_system_prompt(topic, duration, speakers_config):
+def build_system_prompt(topic, duration, speakers_config, famous_style=None):
     base_intro = f"""
 You are an AI specializing in writing podcast scripts. Your task is to create a dialogue that feels like a lively, engaging, and humorous intellectual sparring match. The conversation must be dynamic, fast-paced, and above all, thought-provoking.
 The desired podcast length is approximately {duration} minutes.
@@ -14,6 +14,9 @@ The desired podcast length is approximately {duration} minutes.
 #### General Conversation Style:
 The guiding style is one of sharp and amused cynicism. The speakers don't aim to belittle or dismiss; they use biting wit as a tool to expose absurdities, deconstruct conventions, and examine ideas from unexpected angles. The dialogue should be intelligent yet accessible; critical, yet driven by genuine curiosity. The goal is to make the listener smile, but more importantly, to make them think.
 """
+    if famous_style and famous_style.strip():
+        base_intro += f"\n#### Speaker Style:\nThe speakers should imitate the speaking style of {famous_style}.\n"
+
     output_structure_template = '''
 #### Exact Output Structure:
 
@@ -46,7 +49,7 @@ Their interaction is the heart of the podcast. They complement and challenge eac
 #### Character Profiles:
 Their interaction is the heart of the podcast. They complement and challenge each other.
 *   speaker1: She possesses a quicker, more energetic wit. She acts as a pragmatic foil, bringing discussions back to the human element with playful irony.
-*   speaker2: She has a more deliberate, thoughtful delivery. She enjoys exploring the philosophical and societal implications of the topic, expanding the conversation with 'what if' scenarios and dry humor.
+*   speaker2: She has a more deliberate, thoughtful delivery. She enjoys exploring the philosophical and societal implications of the topic, expanding the conversation with \'what if\' scenarios and dry humor.
 '''
         speaker_tags = '`speaker1:`, `speaker2:`'
         example_directive = 'speaker1 should adopt a rapid-fire, incisive style, while speaker2 responds with thoughtful, philosophical expansions'
@@ -62,9 +65,9 @@ Their interaction is the heart of the podcast. They complement and challenge eac
     output_structure = output_structure_template.replace('[SPEAKER_TAGS]', speaker_tags).replace('[EXAMPLE_DIRECTIVE]', example_directive)
     return f"{base_intro}\n{character_profiles}\n{output_structure}"
 
-def generate_script(topic, duration, speakers_config):
+def generate_script(topic, duration, speakers_config, famous_style=None):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    prompt = build_system_prompt(topic, duration, speakers_config)
+    prompt = build_system_prompt(topic, duration, speakers_config, famous_style)
     body = {
         "systemInstruction": {"parts": [{"text": prompt}]},
         "contents": [{"parts": [{"text": f"Topic: {topic}"}]}]
@@ -131,23 +134,24 @@ def generate_audio(script, speakers_config, api_key):
 
 def main():
     if len(sys.argv) < 4:
-        print("Usage: python podcast.py <topic> <duration> <speakers_config>")
+        print("Usage: python podcast.py <topic> <duration> <speakers_config> [famous_style]")
         sys.exit(1)
     topic = sys.argv[1]
     duration = sys.argv[2]
     speakers_config = sys.argv[3]
+    famous_style = sys.argv[4] if len(sys.argv) > 4 else None
     script_file = "podcast_script.txt"
     if os.path.exists(script_file):
         with open(script_file, "r", encoding="utf-8") as f:
             script = f.read().strip()
         if not script:
             print("קובץ התסריט קיים אך ריק, ייווצר תסריט חדש...")
-            script = generate_script(topic, duration, speakers_config)
+            script = generate_script(topic, duration, speakers_config, famous_style)
             with open(script_file, "w", encoding="utf-8") as f:
                 f.write(script)
     else:
         print("יוצר תסריט...")
-        script = generate_script(topic, duration, speakers_config)
+        script = generate_script(topic, duration, speakers_config, famous_style)
         with open(script_file, "w", encoding="utf-8") as f:
             f.write(script)
     print("התסריט:")
