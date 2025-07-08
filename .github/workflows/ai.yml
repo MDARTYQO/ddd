@@ -1,5 +1,3 @@
-name: Podcast Generator
-
 on:
   workflow_dispatch:
     inputs:
@@ -15,6 +13,10 @@ on:
         description: 'תצורת דוברים (male_female, two_males, two_females)'
         required: true
         default: 'male_female'
+      famous_style:
+        description: 'סגנון דוברים מפורסם (אופציונלי)'
+        required: false
+        default: ''
 
 jobs:
   generate:
@@ -29,9 +31,14 @@ jobs:
         run: pip install requests
       - name: Run podcast generator
         run: |
-          python ai.py "${{ github.event.inputs.topic }}" "${{ github.event.inputs.duration }}" "${{ github.event.inputs.speakers_config }}"
+          python ai.py "${{ github.event.inputs.topic }}" "${{ github.event.inputs.duration }}" "${{ github.event.inputs.speakers_config }}" "${{ github.event.inputs.famous_style }}"
       - name: Upload podcast.wav
         uses: actions/upload-artifact@v4
         with:
           name: podcast-audio
           path: podcast.wav
+      - name: Upload podcast_script.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: podcast-script
+          path: podcast_script.txt
