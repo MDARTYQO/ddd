@@ -1,44 +1,41 @@
-  on:
-    workflow_dispatch:
-      inputs:
-        topic:
-          description: 'נושא הפודקאסט'
-          required: true
-          default: 'האם בינה מלאכותית מסוכנת?'
-        duration:
-          description: 'אורך (בדקות)'
-          required: true
-          default: '5'
-        speakers_config:
-          description: 'תצורת דוברים (male_female, two_males, two_females)'
-          required: true
-          default: 'male_female'
-        famous_style:
-          description: 'סגנון דוברים מפורסם (אופציונלי)'
-          required: false
-          default: ''
-  
-  jobs:
-    generate:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
-        - name: Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: '3.11'
-        - name: Install dependencies
-          run: pip install requests
-        - name: Run podcast generator
-          run: |
-            python ai.py "${{ github.event.inputs.topic }}" "${{ github.event.inputs.duration }}" "${{ github.event.inputs.speakers_config }}" "${{ github.event.inputs.famous_style }}"
-        - name: Upload podcast.wav
-          uses: actions/upload-artifact@v4
-          with:
-            name: podcast-audio
-            path: podcast.wav
-        - name: Upload podcast_script.txt
-          uses: actions/upload-artifact@v4
-          with:
-            name: podcast-script
-            path: podcast_script.txt
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'נושא הפודקאסט'
+        required: true
+        default: 'האם בינה מלאכותית מסוכנת?'
+      duration:
+        description: 'אורך (בדקות)'
+        required: true
+        default: '5'
+      speakers_config:
+        description: 'תצורת דוברים (male_female, two_males, two_females)'
+        required: true
+        default: 'male_female'
+      famous_style:
+        description: 'סגנון דוברים מפורסם (אופציונלי)'
+        required: false
+        default: ''
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run podcast generator
+        run: |
+          python ai.py "${{ github.event.inputs.topic }}" "${{ github.event.inputs.duration }}" "${{ github.event.inputs.speakers_config }}" "${{ github.event.inputs.famous_style }}"
+      - name: Upload podcast artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: podcast-artifact
+          path: |
+            podcast.wav
+            podcast_script.txt
