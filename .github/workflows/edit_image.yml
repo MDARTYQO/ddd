@@ -3,8 +3,6 @@ name: Edit Image with Gemini
 on:
   workflow_dispatch:
     inputs:
-      # --- CHANGED ---
-      # We now expect a base64 encoded string, not a URL
       image_base64:
         description: 'Base64 encoded image data'
         required: true
@@ -12,6 +10,9 @@ on:
         description: 'Edit prompt'
         required: true
         default: 'Add a llama next to me'
+      google_api_key:  # הוספת הפרמטר הזה
+        description: 'Google API Key'
+        required: true
 
 jobs:
   edit-image:
@@ -28,22 +29,12 @@ jobs:
       - name: Install dependencies
         run: pip install google-genai pillow requests
 
-      # --- NEW STEP ---
-      # This step decodes the base64 string back into an image file
       - name: Decode base64 image
         run: |
           echo "${{ github.event.inputs.image_base64 }}" | base64 --decode > input_image.png
 
       - name: Run image edit
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        # --- CHANGED ---
-        # The python script now gets the local file path 'input_image.png'
+          GOOGLE_API_KEY: ${{ github.event.inputs.google_api_key }}  # הוספת המשתנה
         run: |
           python edit_image.py "input_image.png" "${{ github.event.inputs.prompt }}"
-
-      - name: Upload edited image
-        uses: actions/upload-artifact@v4
-        with:
-          name: edited-image
-          path: edited_image.png
