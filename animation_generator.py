@@ -1,29 +1,29 @@
-from google import genai
-from google.genai import types
-from PIL import Image, ImageSequence
-from io import BytesIO
 import os
-import numpy as np
-from tqdm import tqdm
-import argparse
 import sys
-
-# הגדרת משתני סביבה
-GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+import argparse
+from io import BytesIO
+import numpy as np
+from PIL import Image
+from tqdm import tqdm
+import google.generativeai as genai
+from google.genai import types
 
 class AnimationGenerator:
     def __init__(self, output_dir="output_animations"):
-        self.client = genai.Client()
+        """מאתחל את מחולל האנימציות"""
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
         
+        # אתחול ה-API של Google
+        self.client = genai.Client()
+        
     def generate_frame(self, prompt, frame_num, total_frames, style="cartoon"):
-        """יוצר פריים בודד עם פרומפט מותאם"""
+        """מייצר פריים בודד"""
+        # שיפור הפרומפט עם פרטי הפריים הנוכחי
         enhanced_prompt = (
             f"{prompt}, {style} style, "
             f"frame {frame_num+1} of {total_frames}, "
-            f"smooth animation, high detail, clean lines"
+            "smooth animation, high detail, clean lines"
         )
         
         try:
@@ -41,17 +41,20 @@ class AnimationGenerator:
                 )
             )
             
+            # עיבוד התמונה שהתקבלה
             for part in response.candidates[0].content.parts:
                 if part.inline_data is not None:
                     return Image.open(BytesIO(part.inline_data.data))
-                    
         except Exception as e:
             print(f"שגיאה ביצירת פריים {frame_num}: {str(e)}")
             return None
 
     def interpolate_frames(self, frames, target_frames):
         """יוצר מעבר חלק בין הפריימים"""
-        if not frames or len(frames) >= target_frames:
+        if not frames:
+            return []
+            
+        if len(frames) >= target_frames:
             return frames[:target_frames]
             
         result = []
@@ -85,10 +88,12 @@ class AnimationGenerator:
             frame = self.generate_frame(prompt, i, num_keyframes, style)
             if frame:
                 keyframes.append(frame)
+            else:
+                print(f"שגיאה ביצירת פריים מפתח {i+1}")
                 
         if not keyframes:
             print("לא נוצרו פריימים. בדוק את החיבור ל-API.")
-            return
+            return None
             
         # יצירת מעבר חלק
         print("מייצר אנימציה חלקה...")
@@ -96,20 +101,30 @@ class AnimationGenerator:
         
         # שמירת האנימציה כ-GIF
         gif_path = os.path.join(self.output_dir, f"{output_name}.gif")
-        frames[0].save(
-            gif_path,
-            save_all=True,
-            append_images=frames[1:],
-            duration=int(1000/fps),
-            loop=0,
-            optimize=True,
-            quality=90
-        )
         
-        print(f"האנימציה נשמרה ב: {os.path.abspath(gif_path)}")
-        return gif_path
+        try:
+            frames[0].save(
+                gif_path,
+                save_all=True,
+                append_images=frames[1:],
+                duration=int(1000/fps),  # משך זמן במילישניות
+                loop=0,  # 0 = לולאה אינסופית
+                optimize=True,
+                quality=90,
+                disposal=2,
+                transparency=0,
+                dither=0,
+                subrectangles=True
+            )
+            print(f"האנימציה נשמרה ב: {os.path.abspath(gif_path)}")
+            return gif_path
+            
+        except Exception as e:
+            print(f"שגיאה בשמירת האנימציה: {str(e)}")
+            return None
 
 def main():
+    # הגדרת ארגומנטים של שורת הפקודה
     parser = argparse.ArgumentParser(description='יוצר אנימציות מ-Google Gemini')
     parser.add_argument('prompt', type=str, help='הטקסט שיתורגם לתמונה')
     parser.add_argument('--keyframes', type=int, default=6, help='מספר פריימי המפתח (מומלץ 4-8)')
@@ -122,8 +137,11 @@ def main():
     
     args = parser.parse_args()
     
+    # יצירת מופע של מחולל האנימציות
     generator = AnimationGenerator()
-    generator.create_animation(
+    
+    # יצירת האנימציה
+    result = generator.create_animation(
         prompt=args.prompt,
         num_keyframes=args.keyframes,
         output_frames=args.frames,
@@ -131,6 +149,9 @@ def main():
         style=args.style,
         output_name=args.output
     )
+    
+    if not result:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
