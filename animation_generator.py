@@ -14,8 +14,10 @@ class AnimationGenerator:
         os.makedirs(self.output_dir, exist_ok=True)
         
         # אתחול ה-API של Google
-        genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
+        api_key = "AIzaSyBjgoTDkvE8DCXTQKlANgBedDgTvbHCvWA"  # 
+        genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-pro-vision')
+        
         
     def generate_frame(self, prompt, frame_num, total_frames, style="cartoon"):
         """מייצר פריים בודד"""
