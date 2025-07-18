@@ -3,14 +3,14 @@ name: Edit Image with Gemini
 on:
   workflow_dispatch:
     inputs:
-      image_base64:
-        description: 'Base64 encoded image data'
+      image_url:
+        description: 'URL of the input image'
         required: true
       prompt:
         description: 'Edit prompt'
         required: true
         default: 'Add a llama next to me'
-      google_api_key:  # הוספת הפרמטר הזה
+      google_api_key:
         description: 'Google API Key'
         required: true
 
@@ -29,12 +29,12 @@ jobs:
       - name: Install dependencies
         run: pip install google-genai pillow requests
 
-      - name: Decode base64 image
+      - name: Download image from URL
         run: |
-          echo "${{ github.event.inputs.image_base64 }}" | base64 --decode > input_image.png
+          curl -L -o input_image.png "${{ github.event.inputs.image_url }}"
 
       - name: Run image edit
         env:
-          GOOGLE_API_KEY: ${{ github.event.inputs.google_api_key }}  # הוספת המשתנה
+          GOOGLE_API_KEY: ${{ github.event.inputs.google_api_key }}
         run: |
           python edit_image.py "input_image.png" "${{ github.event.inputs.prompt }}"
