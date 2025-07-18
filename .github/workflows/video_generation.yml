@@ -61,44 +61,61 @@ jobs:
       env:
         STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
         PYTHONUNBUFFERED: 1
+        INPUT_PROMPT: ${{ github.event.inputs.prompt }}
+        INPUT_STYLE: ${{ github.event.inputs.style }}
+        INPUT_FRAMES: ${{ github.event.inputs.num_frames }}
+        INPUT_FPS: ${{ github.event.inputs.fps }}
+        INPUT_SEED: ${{ github.event.inputs.seed }}
       run: |
-        echo "Starting video generation with prompt: ${{ github.event.inputs.prompt }}"
-        echo "Style: ${{ github.event.inputs.style }}"
-        echo "Frames: ${{ github.event.inputs.num_frames }}"
-        
         # Create output directory
         mkdir -p output_videos
         
-        # Run the video generation
+        # Set default values if inputs are not provided
+        PROMPT="${INPUT_PROMPT:-'A beautiful landscape'}"
+        STYLE="${INPUT_STYLE:-'pixar'}"
+        FRAMES="${INPUT_FRAMES:-8}"
+        FPS="${INPUT_FPS:-4}"
+        SEED="${INPUT_SEED:-42}"
+        
+        echo "=== Starting Video Generation ==="
+        echo "Prompt: $PROMPT"
+        echo "Style: $STYLE"
+        echo "Frames: $FRAMES"
+        echo "FPS: $FPS"
+        echo "Seed: $SEED"
+        
+        # Run the script with the input parameters
         python text_to_video.py \
-          --prompt "${{ github.event.inputs.prompt }}" \
-          --style "${{ github.event.inputs.style }}" \
-          --frames ${{ github.event.inputs.num_frames }} \
-          --fps ${{ github.event.inputs.fps }} \
-          --seed ${{ github.event.inputs.seed }} \
-          --output output_videos/generated
+          --prompt "$PROMPT" \
+          --style "$STYLE" \
+          --frames "$FRAMES" \
+          --fps "$FPS" \
+          --seed "$SEED" \
+          --output "generated"
+        
+        # List the generated files for debugging
+        echo "\n=== Generated Files ==="
+        ls -la output_videos/
     
-    - name: Upload video artifact
-      if: success()
+    - name: Upload GIF artifact
       uses: actions/upload-artifact@v4
       with:
         name: generated-animation
-        path: |
-          output_videos/*.mp4
-          output_videos/*.gif
+        path: output_videos/*.gif
+        if-no-files-found: error
         retention-days: 1
     
-    - name: Display video info
-      if: always()
+    - name: Display GIF info
+      if: success()
       run: |
-        echo "=== Video Generation Completed ==="
-        echo "Generated files in output_videos/:"
+        echo "=== GIF Generation Completed ==="
+        echo "Check the 'Artifacts' section above to download the generated GIF."
+        echo "File size: $(ls -lh output_videos/*.gif | awk '{print $5}')B"
         ls -la output_videos/ 2>/dev/null || echo "No output directory found"
         
         # Check for any errors in the logs
         echo -e "\n=== Log Summary ==="
         grep -i -E 'error|warning|exception|traceback' $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No errors found in logs"
-        
         echo -e "\n=== Disk Usage ==="
         df -h
         echo -e "\n=== Memory Usage ==="
