@@ -1,0 +1,107 @@
+name: Generate Animation with Google Gemini
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'הטקסט שיתורגם לאנימציה (באנגלית)'
+        required: true
+        default: 'A cartoon character waving hello'
+      style:
+        description: 'סגנון האנימציה'
+        required: false
+        default: 'cartoon'
+        type: choice
+        options:
+        - cartoon
+        - anime
+        - watercolor
+        - pixel art
+        - 3d render
+      keyframes:
+        description: 'מספר פריימי המפתח (4-8)'
+        required: false
+        default: '6'
+      frames:
+        description: 'מספר הפריימים הסופי'
+        required: false
+        default: '24'
+      fps:
+        description: 'פריימים לשנייה'
+        required: false
+        default: '8'
+
+jobs:
+  generate-animation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install google-generativeai pillow numpy tqdm
+    
+    - name: Create output directory
+      run: mkdir -p output_animations
+    
+    - name: Generate animation
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        # Set default values if inputs are empty
+        PROMPT="${{ github.event.inputs.prompt || 'A cartoon character waving hello' }}"
+        STYLE="${{ github.event.inputs.style || 'cartoon' }}"
+        KEYFRAMES="${{ github.event.inputs.keyframes || 6 }}"
+        FRAMES="${{ github.event.inputs.frames || 24 }}"
+        FPS="${{ github.event.inputs.fps || 8 }}"
+        
+        # Generate a timestamp for unique filenames
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        
+        echo "=== Starting Animation Generation ==="
+        echo "Prompt: $PROMPT"
+        echo "Style: $STYLE"
+        echo "Keyframes: $KEYFRAMES"
+        echo "Total Frames: $FRAMES"
+        echo "FPS: $FPS"
+        
+        # Run the animation generator
+        python animation_generator.py \
+          "$PROMPT" \
+          --keyframes "$KEYFRAMES" \
+          --frames "$FRAMES" \
+          --fps "$FPS" \
+          --style "$STYLE" \
+          --output "animation_${TIMESTAMP}"
+        
+        # Verify the output file was created
+        if [ -f "output_animations/animation_${TIMESTAMP}.gif" ]; then
+          echo "Animation generated successfully!"
+          ls -lh output_animations/
+        else
+          echo "Error: Animation file was not created"
+          exit 1
+        fi
+    
+    - name: Upload animation
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-animation
+        path: output_animations/*.gif
+        if-no-files-found: error
+        retention-days: 1
+    
+    - name: Display animation info
+      if: success()
+      run: |
+        echo "=== Animation Generation Completed ==="
+        echo "Check the 'Artifacts' section to download the generated animation."
+        echo "File size: $(ls -lh output_animations/*.gif | awk '{print $5}')B"
