@@ -9,7 +9,7 @@ from io import BytesIO
 import base64
 
 # Configuration
-STABILITY_API_KEY = "YOUR_STABILITY_API_KEY"  # You'll need to get this from stability.ai
+STABILITY_API_KEY = "sk-WUx6HmPG6BkwtMVlD6nbhLbbZzCMs0o58bWBwJBjDKPDLTSZ"  # You'll need to get this from stability.ai
 OUTPUT_DIR = "output_videos"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
