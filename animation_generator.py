@@ -6,7 +6,6 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 import google.generativeai as genai
-from google.genai import types
 
 class AnimationGenerator:
     def __init__(self, output_dir="output_animations"):
@@ -15,7 +14,8 @@ class AnimationGenerator:
         os.makedirs(self.output_dir, exist_ok=True)
         
         # אתחול ה-API של Google
-        self.client = genai.Client()
+        genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
+        self.model = genai.GenerativeModel('gemini-pro-vision')
         
     def generate_frame(self, prompt, frame_num, total_frames, style="cartoon"):
         """מייצר פריים בודד"""
@@ -27,24 +27,30 @@ class AnimationGenerator:
         )
         
         try:
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash-preview-image-generation",
+            # יצירת תמונה באמצעות המודל
+            response = self.model.generate_content(
                 contents=enhanced_prompt,
-                config=types.GenerateContentConfig(
-                    response_modalities=['IMAGE'],
-                    generation_config={
-                        "temperature": 0.7,
-                        "top_p": 0.9,
-                        "top_k": 40,
-                        "candidate_count": 1
-                    }
-                )
+                generation_config={
+                    "temperature": 0.7,
+                    "top_p": 0.9,
+                    "top_k": 40,
+                    "max_output_tokens": 2048,
+                }
             )
             
-            # עיבוד התמונה שהתקבלה
-            for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
-                    return Image.open(BytesIO(part.inline_data.data))
+            # בדיקה אם התקבלה תמונה
+            if hasattr(response, 'parts') and response.parts:
+                for part in response.parts:
+                    if hasattr(part, 'inline_data') and part.inline_data:
+                        return Image.open(BytesIO(part.inline_data.data))
+            
+            # אם לא מצאנו תמונה, ננסה דרך אחרת
+            if hasattr(response, 'candidates') and response.candidates:
+                for candidate in response.candidates:
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'inline_data') and part.inline_data:
+                                return Image.open(BytesIO(part.inline_data.data))
         except Exception as e:
             print(f"שגיאה ביצירת פריים {frame_num}: {str(e)}")
             return None
