@@ -139,27 +139,53 @@ def create_video_from_text(
     print(f"Creating {num_frames} frames from {num_keyframes} keyframes...")
     frames = interpolate_frames(keyframes, num_frames)
     
-    # Save as GIF and MP4
+    # Create output directory if it doesn't exist
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    output_path = os.path.join(OUTPUT_DIR, output_filename)
+    
+    # Prepare output path
+    base_output_path = os.path.join(OUTPUT_DIR, output_filename)
+    
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(os.path.abspath(base_output_path)), exist_ok=True)
     
     try:
         # Save as GIF
-        gif_path = f"{output_path}.gif"
+        gif_path = f"{base_output_path}.gif"
         print(f"Saving GIF to {gif_path}")
-        imageio.mimsave(gif_path, frames, fps=fps, loop=0)
-        
-        # Save as MP4 if possible
         try:
-            mp4_path = f"{output_path}.mp4"
-            print(f"Saving MP4 to {mp4_path}")
-            with imageio.get_writer(mp4_path, fps=fps, codec='libx264') as writer:
-                for frame in frames:
-                    writer.append_data(frame)
-            output_file = mp4_path
-        except Exception as e:
-            print(f"Could not save MP4: {e}. Using GIF instead.")
+            # Ensure frames are in the correct format
+            gif_frames = [Image.fromarray(frame) for frame in frames]
+            gif_frames[0].save(
+                gif_path,
+                save_all=True,
+                append_images=gif_frames[1:],
+                duration=int(1000/fps),
+                loop=0
+            )
             output_file = gif_path
+            print(f"Successfully saved GIF to {gif_path}")
+            
+            # Try to save as MP4 if possible
+            try:
+                mp4_path = f"{base_output_path}.mp4"
+                print(f"Attempting to save MP4 to {mp4_path}")
+                imageio.mimsave(mp4_path, frames, fps=fps, codec='libx264')
+                output_file = mp4_path
+                print(f"Successfully saved MP4 to {mp4_path}")
+            except Exception as e:
+                print(f"Could not save MP4: {e}. Using GIF instead.")
+                
+        except Exception as e:
+            print(f"Error saving GIF: {e}")
+            # Try to save at least one frame as fallback
+            try:
+                single_frame_path = f"{base_output_path}_frame0.png"
+                Image.fromarray(frames[0]).save(single_frame_path)
+                print(f"Saved single frame as fallback to {single_frame_path}")
+                return single_frame_path
+            except Exception as e2:
+                print(f"Could not save any output files: {e2}")
+                raise
         
         total_time = time.time() - start_time
         print(f"Video generation completed in {total_time:.2f} seconds")
@@ -241,9 +267,9 @@ if __name__ == "__main__":
         else:
             print("\n=== Warning: No video was generated ===")
             
-    except torch.cuda.OutOfMemoryError:
+    except MemoryError:
         print("\n=== Error: Out of Memory ===")
-        print("The script ran out of GPU/CPU memory. Try these fixes:")
+        print("The script ran out of memory. Try these fixes:")
         print("1. Reduce the number of frames (--frames)")
         print("2. Reduce the image size (--width and --height)")
         print("3. Use a simpler prompt")
