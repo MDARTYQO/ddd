@@ -1,26 +1,21 @@
-# Core dependencies
-torch>=2.0.0
-torchvision
-torchaudio
---index-url https://download.pytorch.org/whl/cpu  # CPU-only version
+# Core PyTorch (CPU version)
+torch==2.0.1+cpu
+torchvision==0.15.2+cpu
+torchaudio==2.0.2
+--index-url https://download.pytorch.org/whl/cpu
 
-# Stable Diffusion and diffusion models
-diffusers>=0.25.0
-transformers>=4.30.0
-accelerate>=0.20.0
+# Diffusion models
+diffusers==0.24.0
+transformers==4.35.2
+accelerate==0.25.0
 
-# Image and video processing
-imageio>=2.25.0
-imageio-ffmpeg>=0.4.7
-Pillow>=9.0.0
-numpy>=1.24.0
+# Image processing
+Pillow==10.0.0
+imageio==2.31.1
+imageio-ffmpeg==0.4.8
+numpy==1.24.3
 
-# For safety and performance
-safetensors>=0.3.0
-omegaconf>=2.3.0
-
-# For memory optimization
-bitsandbytes>=0.40.0
-
-# For progress bars
-tqdm>=4.65.0
+# Utilities
+safetensors==0.4.0
+omegaconf==2.3.0
+tqdm==4.66.1
