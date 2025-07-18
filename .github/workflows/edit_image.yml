@@ -38,3 +38,10 @@ jobs:
           GOOGLE_API_KEY: ${{ github.event.inputs.google_api_key }}
         run: |
           python edit_image.py "input_image.png" "${{ github.event.inputs.prompt }}"
+          
+      - name: Upload edited image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: edited-image
+          path: edited_image.png
+          retention-days: 1
