@@ -55,8 +55,6 @@ jobs:
       run: mkdir -p output_animations
     
     - name: Generate animation
-      env:
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       run: |
         # Set default values if inputs are empty
         PROMPT="${{ github.event.inputs.prompt || 'A cartoon character waving hello' }}"
