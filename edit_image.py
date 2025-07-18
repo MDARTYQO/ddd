@@ -9,13 +9,26 @@ import sys
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-def download_image(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return Image.open(BytesIO(response.content))
+def load_image(image_input):
+    """Load an image from either a URL or a local file path."""
+    if image_input.startswith(('http://', 'https://')):
+        # It's a URL
+        response = requests.get(image_input)
+        response.raise_for_status()
+        return Image.open(BytesIO(response.content))
+    else:
+        # It's a local file path
+        return Image.open(image_input)
 
-def edit_image_with_gemini(image_url, prompt, output_filename="edited_image.png"):
-    image = download_image(image_url)
+def edit_image_with_gemini(image_input, prompt, output_filename="edited_image.png"):
+    """Edit an image using Gemini.
+    
+    Args:
+        image_input: Either a URL (starting with http/https) or a local file path
+        prompt: The editing instruction
+        output_filename: Where to save the result
+    """
+    image = load_image(image_input)
     client = genai.Client()
     response = client.models.generate_content(
         model="gemini-2.0-flash-preview-image-generation",
@@ -36,8 +49,9 @@ def edit_image_with_gemini(image_url, prompt, output_filename="edited_image.png"
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python edit_image.py <image_url> <prompt>")
+        print("Usage: python edit_image.py <image_path_or_url> <prompt>")
         sys.exit(1)
-    image_url = sys.argv[1]
+    
+    image_input = sys.argv[1]
     prompt = sys.argv[2]
-    edit_image_with_gemini(image_url, prompt)
+    edit_image_with_gemini(image_input, prompt)
