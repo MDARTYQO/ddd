@@ -1,0 +1,114 @@
+name: Text to Video Generation (CPU)
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Text prompt for video generation'
+        required: true
+        default: 'A beautiful sunset over the mountains'
+      style:
+        description: 'Animation style (pixar, anime, watercolor, cyberpunk, claymation)'
+        required: false
+        default: 'pixar'
+      num_frames:
+        description: 'Number of frames to generate (max 16 for CPU)'
+        required: false
+        default: '8'
+      fps:
+        description: 'Frames per second for the output video'
+        required: false
+        default: '4'
+      seed:
+        description: 'Random seed for reproducibility'
+        required: false
+        default: '42'
+
+jobs:
+  generate-video:
+    runs-on: ubuntu-latest
+    
+    # Use larger runner for more memory
+    strategy:
+      matrix:
+        python-version: ['3.10']
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          ffmpeg \
+          libsm6 \
+          libxext6 \
+          libgl1-mesa-glx \
+          libglib2.0-0
+    
+    - name: Cache Hugging Face models
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/huggingface/hub
+        key: ${{ runner.os }}-huggingface-${{ hashFiles('requirements_video.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-huggingface-
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --no-cache-dir -r requirements_video.txt
+    
+    - name: Generate video
+      timeout-minutes: 30  # Set a timeout to prevent hanging
+      env:
+        HF_HOME: ~/.cache/huggingface
+        PYTHONUNBUFFERED: 1
+      run: |
+        echo "Starting video generation with prompt: ${{ github.event.inputs.prompt }}"
+        echo "Style: ${{ github.event.inputs.style }}"
+        echo "Frames: ${{ github.event.inputs.num_frames }}"
+        
+        # Create output directory
+        mkdir -p output_videos
+        
+        # Run the video generation
+        python text_to_video.py \
+          --prompt "${{ github.event.inputs.prompt }}" \
+          --style "${{ github.event.inputs.style }}" \
+          --frames ${{ github.event.inputs.num_frames }} \
+          --fps ${{ github.event.inputs.fps }} \
+          --seed ${{ github.event.inputs.seed }} \
+          --output output_videos/generated
+    
+    - name: Upload video artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-animation
+        path: |
+          output_videos/*.mp4
+          output_videos/*.gif
+        retention-days: 1
+    
+    - name: Display video info
+      if: always()
+      run: |
+        echo "=== Video Generation Completed ==="
+        echo "Generated files in output_videos/:"
+        ls -la output_videos/ 2>/dev/null || echo "No output directory found"
+        
+        # Check for any errors in the logs
+        echo -e "\n=== Log Summary ==="
+        grep -i -E 'error|warning|exception|traceback' $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No errors found in logs"
+        
+        echo -e "\n=== Disk Usage ==="
+        df -h
+        echo -e "\n=== Memory Usage ==="
+        free -h
