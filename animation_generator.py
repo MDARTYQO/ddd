@@ -16,7 +16,7 @@ class AnimationGenerator:
         # אתחול ה-API של Google
         api_key = "AIzaSyBjgoTDkvE8DCXTQKlANgBedDgTvbHCvWA"  # 
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro-vision')
+        self.model = genai.GenerativeModel('gemini-2.0-flash-preview-image-generation')
         
         
     def generate_frame(self, prompt, frame_num, total_frames, style="cartoon"):
