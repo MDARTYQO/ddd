@@ -41,41 +41,26 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          ffmpeg \
-          libsm6 \
-          libxext6 \
-          libgl1 \
-          libglib2.0-0 \
-          python3-opencv \
-          python3-pip \
-          libjpeg-dev \
-          zlib1g-dev
+        sudo apt-get install -y ffmpeg python3-pip
     
-    - name: Cache Hugging Face models
-      uses: actions/cache@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        path: ~/.cache/huggingface/hub
-        key: ${{ runner.os }}-huggingface-${{ hashFiles('requirements_video.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-huggingface-
+        python-version: '3.10'
     
     - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
-        pip install --no-cache-dir -r requirements_video.txt --extra-index-url https://download.pytorch.org/whl/cpu
+        python -m pip install --upgrade pip
+        pip install -r requirements_video.txt
     
     - name: Generate video
-      timeout-minutes: 45  # Increased timeout for CPU
+      timeout-minutes: 30
       env:
-        HF_HOME: ~/.cache/huggingface
+        STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
         PYTHONUNBUFFERED: 1
-        PYTORCH_ENABLE_MPS_FALLBACK: 1
-        PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0
       run: |
         echo "Starting video generation with prompt: ${{ github.event.inputs.prompt }}"
         echo "Style: ${{ github.event.inputs.style }}"
