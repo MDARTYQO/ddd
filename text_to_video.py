@@ -1,16 +1,15 @@
 import os
-import torch
-from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+import requests
 from PIL import Image
 import numpy as np
 import imageio
-from pathlib import Path
 import time
 import random
+from io import BytesIO
+import base64
 
 # Configuration
-MODEL_ID = "runwayml/stable-diffusion-v1-5"  # Base model for Text2Video-Zero
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+STABILITY_API_KEY = "YOUR_STABILITY_API_KEY"  # You'll need to get this from stability.ai
 OUTPUT_DIR = "output_videos"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -23,8 +22,39 @@ ANIMATION_STYLES = {
     "claymation": "Claymation style, stop motion, soft lighting"
 }
 
-# Simple interpolation between frames
+def generate_image_with_stability(prompt, style, seed=42, width=512, height=512):
+    """Generate an image using Stability AI API"""
+    url = "https://api.stability.ai/v2beta/stable-image/generate/core"
+    
+    headers = {
+        "Authorization": f"Bearer {STABILITY_API_KEY}",
+        "Accept": "image/*"
+    }
+    
+    data = {
+        "prompt": f"{prompt}, {style}",
+        "output_format": "png",
+        "seed": seed,
+        "width": width,
+        "height": height,
+        "samples": 1,
+        "steps": 30
+    }
+    
+    response = requests.post(
+        url,
+        headers=headers,
+        files={"none": ''},  # Required by the API
+        data=data
+    )
+    
+    if response.status_code == 200:
+        return Image.open(BytesIO(response.content))
+    else:
+        raise Exception(f"API request failed: {response.status_code} - {response.text}")
+
 def interpolate_frames(frames, num_frames):
+    """Simple frame interpolation"""
     if len(frames) >= num_frames:
         return frames[:num_frames]
     
@@ -41,8 +71,8 @@ def apply_animation_style(prompt: str, style: str = "pixar") -> str:
 
 def create_video_from_text(
     prompt: str,
-    num_frames: int = 8,  # Reduced for CPU compatibility
-    fps: int = 4,  # Lower FPS for smoother playback
+    num_frames: int = 8,
+    fps: int = 4,
     seed: int = 42,
     output_filename: str = "generated_video",
     style: str = "pixar",
@@ -63,28 +93,15 @@ def create_video_from_text(
     Returns:
         Path to the generated video file
     """
-    print(f"Initializing model on {DEVICE}...")
+    print("Starting video generation with Stability AI API...")
     start_time = time.time()
     
+    if not STABILITY_API_KEY or STABILITY_API_KEY == "YOUR_STABILITY_API_KEY":
+        raise ValueError("Please set your Stability AI API key in the STABILITY_API_KEY variable")
+    
     # Set random seed for reproducibility
-    torch.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
-    
-    # Initialize the pipeline with lower memory requirements
-    pipe = StableDiffusionPipeline.from_pretrained(
-        "runwayml/stable-diffusion-v1-5",
-        torch_dtype=torch.float32,  # Using float32 for better CPU compatibility
-        safety_checker=None,
-        requires_safety_checker=False
-    )
-    
-    # Configure scheduler for better performance
-    pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
-    
-    # Move to device and enable attention slicing for lower memory usage
-    pipe = pipe.to(DEVICE)
-    pipe.enable_attention_slicing()
     
     # Apply animation style to prompt
     enhanced_prompt = apply_animation_style(prompt, style)
@@ -101,15 +118,22 @@ def create_video_from_text(
         frame_prompt = f"{enhanced_prompt}, frame {i+1} of {num_keyframes}"
         
         # Generate image with consistent seed but slightly varied prompt
-        image = pipe(
-            frame_prompt,
-            height=height,
-            width=width,
-            num_inference_steps=15,
-            generator=torch.Generator(device=DEVICE).manual_seed(seed + i)
-        ).images[0]
-        
-        keyframes.append(np.array(image))
+        try:
+            image = generate_image_with_stability(
+                prompt=frame_prompt,
+                style=style,
+                seed=seed + i,
+                width=width,
+                height=height
+            )
+            keyframes.append(np.array(image))
+        except Exception as e:
+            print(f"Error generating frame {i+1}: {str(e)}")
+            if keyframes:  # If we have at least one frame, duplicate it
+                keyframes.append(keyframes[-1])
+            else:
+                # Create a blank frame if we can't generate any images
+                keyframes.append(np.zeros((height, width, 3), dtype=np.uint8))
     
     # Interpolate between keyframes to create smooth animation
     print(f"Creating {num_frames} frames from {num_keyframes} keyframes...")
