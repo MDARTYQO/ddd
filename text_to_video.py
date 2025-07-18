@@ -142,14 +142,11 @@ def create_video_from_text(
     # Create output directory if it doesn't exist
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
-    # Prepare output path
-    base_output_path = os.path.join(OUTPUT_DIR, output_filename)
-    
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(os.path.abspath(base_output_path)), exist_ok=True)
+    # Prepare output path - make sure it's inside the OUTPUT_DIR
+    base_output_path = os.path.join(OUTPUT_DIR, os.path.basename(output_filename))
     
     try:
-        # Save as GIF
+        # Save as GIF only
         gif_path = f"{base_output_path}.gif"
         print(f"Saving GIF to {gif_path}")
         try:
@@ -159,21 +156,14 @@ def create_video_from_text(
                 gif_path,
                 save_all=True,
                 append_images=gif_frames[1:],
-                duration=int(1000/fps),
-                loop=0
+                duration=int(1000/fps),  # duration in milliseconds
+                loop=0,  # 0 means loop forever
+                optimize=True,
+                quality=80
             )
             output_file = gif_path
             print(f"Successfully saved GIF to {gif_path}")
-            
-            # Try to save as MP4 if possible
-            try:
-                mp4_path = f"{base_output_path}.mp4"
-                print(f"Attempting to save MP4 to {mp4_path}")
-                imageio.mimsave(mp4_path, frames, fps=fps, codec='libx264')
-                output_file = mp4_path
-                print(f"Successfully saved MP4 to {mp4_path}")
-            except Exception as e:
-                print(f"Could not save MP4: {e}. Using GIF instead.")
+            print(f"GIF file size: {os.path.getsize(gif_path) / 1024:.1f} KB")
                 
         except Exception as e:
             print(f"Error saving GIF: {e}")
@@ -219,8 +209,8 @@ if __name__ == "__main__":
                       help="Frames per second for the output video (1-4 recommended)")
     parser.add_argument("--seed", type=int, default=42, 
                       help="Random seed for reproducibility")
-    parser.add_argument("--output", type=str, default="animation", 
-                      help="Output filename (without extension)")
+    parser.add_argument("--output", type=str, default="generated", 
+                      help="Output filename (without extension, will be saved as .gif)")
     parser.add_argument("--height", type=int, default=512,
                       help="Image height (multiple of 8, max 512)")
     parser.add_argument("--width", type=int, default=512,
@@ -262,8 +252,9 @@ if __name__ == "__main__":
         if video_path:
             print(f"\n=== Video Generation Completed ===")
             print(f"Output saved to: {os.path.abspath(video_path)}")
-            print(f"File size: {os.path.getsize(video_path) / (1024*1024):.1f} MB")
+            print(f"File size: {os.path.getsize(video_path) / 1024:.1f} KB")
             print("You can find the output in the 'output_videos' directory.")
+            print("\nTo download the GIF, check the 'Artifacts' section in the workflow summary.")
         else:
             print("\n=== Warning: No video was generated ===")
             
