@@ -52,7 +52,9 @@ jobs:
           libgl1 \
           libglib2.0-0 \
           python3-opencv \
-          python3-pip
+          python3-pip \
+          libjpeg-dev \
+          zlib1g-dev
     
     - name: Cache Hugging Face models
       uses: actions/cache@v3
@@ -64,14 +66,16 @@ jobs:
     
     - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install --no-cache-dir -r requirements_video.txt
+        python -m pip install --upgrade pip setuptools wheel
+        pip install --no-cache-dir -r requirements_video.txt --extra-index-url https://download.pytorch.org/whl/cpu
     
     - name: Generate video
-      timeout-minutes: 30  # Set a timeout to prevent hanging
+      timeout-minutes: 45  # Increased timeout for CPU
       env:
         HF_HOME: ~/.cache/huggingface
         PYTHONUNBUFFERED: 1
+        PYTORCH_ENABLE_MPS_FALLBACK: 1
+        PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0
       run: |
         echo "Starting video generation with prompt: ${{ github.event.inputs.prompt }}"
         echo "Style: ${{ github.event.inputs.style }}"
