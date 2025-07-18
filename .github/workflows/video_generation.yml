@@ -49,8 +49,10 @@ jobs:
           ffmpeg \
           libsm6 \
           libxext6 \
-          libgl1-mesa-glx \
-          libglib2.0-0
+          libgl1 \
+          libglib2.0-0 \
+          python3-opencv \
+          python3-pip
     
     - name: Cache Hugging Face models
       uses: actions/cache@v3
