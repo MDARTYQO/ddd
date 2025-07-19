@@ -51,7 +51,7 @@ def main():
 
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(
-        model_name='gemini-1.0-pro',
+        model_name='gemini-2.5-pro',
         system_instruction=SYSTEM_PROMPT
     )
 
