@@ -14,9 +14,6 @@ on:
 jobs:
   get_gemini_response:
     runs-on: ubuntu-latest
-    outputs:
-      gemini_output: ${{ steps.gemini_step.outputs.response }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,16 +28,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Gemini Worker
+      - name: Run Gemini Worker and Save Output
         id: gemini_step
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           USER_PROMPT: ${{ github.event.inputs.user_prompt }}
           CHAT_HISTORY: ${{ github.event.inputs.chat_history }}
-        run: |
-          response=$(python gemini_worker.py)
-          # Escape newlines for the output
-          response="${response//'%'/'%25'}"
-          response="${response//$'\n'/'%0A'}"
-          response="${response//$'\r'/'%0D'}"
-          echo "response=$response" >> $GITHUB_OUTPUT
+        run: python gemini_worker.py > gemini_output.txt
+
+      - name: Upload Gemini Response as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-response
+          path: gemini_output.txt
