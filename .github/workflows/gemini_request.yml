@@ -1,0 +1,46 @@
+name: Gemini Request Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_prompt:
+        description: 'The user prompt to send to Gemini'
+        required: true
+      chat_history:
+        description: 'The JSON string of the chat history'
+        required: false
+        default: '[]'
+
+jobs:
+  get_gemini_response:
+    runs-on: ubuntu-latest
+    outputs:
+      gemini_output: ${{ steps.gemini_step.outputs.response }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Gemini Worker
+        id: gemini_step
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          USER_PROMPT: ${{ github.event.inputs.user_prompt }}
+          CHAT_HISTORY: ${{ github.event.inputs.chat_history }}
+        run: |
+          response=$(python gemini_worker.py)
+          # Escape newlines for the output
+          response="${response//'%'/'%25'}"
+          response="${response//$'\n'/'%0A'}"
+          response="${response//$'\r'/'%0D'}"
+          echo "response=$response" >> $GITHUB_OUTPUT
