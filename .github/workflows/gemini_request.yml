@@ -4,12 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       user_prompt:
-        description: 'The user prompt to send to Gemini'
+        description: 'The user\'s prompt to Gemini'
         required: true
       chat_history:
-        description: 'The JSON string of the chat history'
+        description: 'The conversation history in JSON format'
         required: false
         default: '[]'
+      is_feedback:
+        description: 'Flag to indicate if the prompt is feedback from a command'
+        required: false
+        default: 'false'
 
 jobs:
   get_gemini_response:
