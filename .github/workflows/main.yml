@@ -20,11 +20,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install yt-dlp
-
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Install ffmpeg if not exists
+        run: |
+          if ! command -v ffmpeg &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          else
+            echo "ffmpeg already installed"
+          fi
 
       - name: Download cookies.txt from repository (if exists)
         run: |
