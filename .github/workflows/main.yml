@@ -20,6 +20,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install dependencies
+        run: pip install yt-dlp
+
       - name: Install ffmpeg if not exists
         run: |
           if ! command -v ffmpeg &> /dev/null; then
