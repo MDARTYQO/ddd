@@ -27,7 +27,7 @@ jobs:
         run: |
           if ! command -v ffmpeg &> /dev/null; then
             sudo apt-get update
-            sudo apt-get install -y ffmpeg
+            sudo apt-get install -y --no-install-recommends ffmpeg
           else
             echo "ffmpeg already installed"
           fi
