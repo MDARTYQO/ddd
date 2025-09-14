@@ -47,12 +47,23 @@ jobs:
           output=$(python download_and_zip1.py "${{ github.event.inputs.video_url }}" | grep "נשמר קובץ הווידאו בשם: ")
           # Extract the filename from the output
           FILENAME=$(echo "$output" | cut -d' ' -f6)
-          # Set the output for the next step
-          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          # Save the filename to a file for the next step
+          echo "$FILENAME" > filename.txt
           echo "Downloaded file: $FILENAME"
+          # Also set it as an output
+          echo "filename=$FILENAME" >> $GITHUB_ENV
+
+      - name: Get the downloaded filename
+        id: filename
+        run: |
+          # Read the filename from the file
+          FILENAME=$(cat filename.txt)
+          echo "Using filename: $FILENAME"
+          # Set it as an output
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
 
       - name: Upload video artifact
         uses: actions/upload-artifact@v4
         with:
           name: youtube-video
-          path: ${{ steps.download.outputs.filename }}
+          path: ${{ steps.filename.outputs.filename }}
