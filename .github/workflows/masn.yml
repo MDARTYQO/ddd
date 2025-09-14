@@ -44,19 +44,21 @@ jobs:
         id: download
         run: |
           python download_and_zip1.py "${{ github.event.inputs.video_url }}"
-          echo "Downloaded files:"
+          echo "List from downloaded_files.txt (if created):"
           cat downloaded_files.txt || true
 
-          # חושפים את הרשימה כפלט רב-שורות ל-step
-          {
-            echo "files<<EOF"
-            cat downloaded_files.txt
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Upload video artifact(s)
+      # Single video case (uses 'file' output)
+      - name: Upload video artifact
+        if: ${{ always() && steps.download.outputs.file != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: youtube-video
-          # path יכול להיות רב-שורות. כל שורה = קובץ אחד.
+          path: ${{ steps.download.outputs.file }}
+
+      # Playlist or multiple files (uses multiline 'files' output)
+      - name: Upload video artifacts (multiple)
+        if: ${{ always() && steps.download.outputs.files != '' && steps.download.outputs.file == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-videos
           path: ${{ steps.download.outputs.files }}
