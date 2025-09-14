@@ -23,11 +23,12 @@ def is_playlist_or_channel(url: str) -> bool:
     )
 
 ydl_opts = {
-    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
-    "outtmpl": output_template,
+    "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a][channels<=2]/bestaudio[channels<=2]/best",
     "merge_output_format": "mp4",
+    # כופה downmix לסטריאו גם אם ירד אודיו 5.1
+    "postprocessor_args": ["-ac", "2"],
     "noprogress": True,
-    "quiet": True,  # keep stdout clean
+    "quiet": True,
 }
 
 if cookiefile:
