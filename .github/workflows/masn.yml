@@ -40,12 +40,19 @@ jobs:
             echo "No cookies.txt found"
           fi
 
-      - name: Download and zip video
+      - name: Download video
+        id: download
         run: |
-          python download_and_zip1.py "${{ github.event.inputs.video_url }}"
+          # Run the script and capture the output
+          output=$(python download_and_zip1.py "${{ github.event.inputs.video_url }}" | grep "נשמר קובץ הווידאו בשם: ")
+          # Extract the filename from the output
+          FILENAME=$(echo "$output" | cut -d' ' -f6)
+          # Set the output for the next step
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "Downloaded file: $FILENAME"
 
-      - name: Upload ZIP artifact
+      - name: Upload video artifact
         uses: actions/upload-artifact@v4
         with:
-          name: youtube-video-zip
-          path: filename.mp4
+          name: youtube-video
+          path: ${{ steps.download.outputs.filename }}
