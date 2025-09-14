@@ -48,4 +48,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: youtube-video-zip
-          path: filename
+          path: filename.mp4
