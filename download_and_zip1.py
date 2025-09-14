@@ -2,7 +2,7 @@ import yt_dlp
 import os
 import sys
 
-# קבלת כתובת הסרטון מהפרמטרים
+# Get video URL from command line arguments
 if len(sys.argv) > 1:
     video_url = sys.argv[1]
 else:
@@ -11,8 +11,8 @@ else:
 
 cookiefile = "cookies.txt" if os.path.exists("cookies.txt") else None
 
-# תבנית שם הקובץ: שם הסרטון + סיומת mp4
-output_template = "%(title)s.%(ext)s"
+# Output template - using a fixed name for the workflow
+output_template = "downloaded_video.%(ext)s"  # Changed to fixed name
 
 def is_playlist_or_channel(url):
     return (
@@ -44,5 +44,5 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             filename = ydl.prepare_filename(entry)
             print(f"נשמר קובץ הווידאו בשם: {filename}")
     else:
-        filename = ydl.prepare_filename(info)
+        filename = "downloaded_video.mp4"  # Fixed output filename
         print(f"נשמר קובץ הווידאו בשם: {filename}")
