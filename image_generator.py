@@ -1,75 +1,53 @@
 from google import genai
-from google.genai import types
-from PIL import Image
-from io import BytesIO
-import sys
 import os
 
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-def generate_image_imagen(prompt, num_images=1):
+def check_quota_and_models():
     try:
         client = genai.Client()
         
-        print(f"שולח בקשה עם הפרומפט: {prompt}")
-        print(f"מודל: imagen-4.0-generate-001")
-        print(f"מספר תמונות: {num_images}")
+        print("=== בדיקת מודלים זמינים ===")
+        models = client.models.list()
         
-        response = client.models.generate_images(
-            model='imagen-4.0-generate-001',
-            prompt=prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=num_images,
+        text_models = []
+        image_models = []
+        
+        for model in models:
+            model_name = model.name
+            print(f"מודל: {model_name}")
+            
+            if "image" in model_name.lower() or "imagen" in model_name.lower():
+                image_models.append(model_name)
+                print("  ^ מודל תמונות")
+            elif "text" in model_name.lower() or "flash" in model_name.lower() or "pro" in model_name.lower():
+                text_models.append(model_name)
+                print("  ^ מודל טקסט")
+        
+        print(f"\n=== סיכום ===")
+        print(f"מודלי טקסט זמינים: {len(text_models)}")
+        for model in text_models:
+            print(f"  - {model}")
+            
+        print(f"\nמודלי תמונות זמינים: {len(image_models)}")
+        for model in image_models:
+            print(f"  - {model}")
+        
+        # נסה בקשה פשוטה לטקסט כדי לבדוק אם ה-API Key עובד בכלל
+        print(f"\n=== בדיקת API Key עם בקשת טקסט פשוטה ===")
+        try:
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=["Say hello in Hebrew"]
             )
-        )
-        
-        print(f"התקבלה תגובה עם {len(response.generated_images)} תמונות")
-        
-        for i, generated_image in enumerate(response.generated_images):
-            filename = f"imagen_output_{i+1}.png"
-            
-            # שמור את התמונה
-            generated_image.image.save(filename)
-            print(f"תמונה {i+1} נשמרה: {filename}")
-            
-            # אופציונלי - הצג את התמונה (אם אפשר)
-            try:
-                generated_image.image.show()
-            except:
-                print(f"לא ניתן להציג את התמונה {i+1} (אין GUI)")
-        
-        return True
+            print("✅ API Key עובד - תגובה:")
+            print(response.candidates[0].content.parts[0].text)
+        except Exception as text_error:
+            print(f"❌ גם בקשות טקסט לא עובדות: {text_error}")
         
     except Exception as e:
-        print(f"\n=== פרטי השגיאה המלאים ===")
-        print(f"סוג השגיאה: {type(e).__name__}")
-        print(f"הודעת השגיאה: {str(e)}")
-        
-        # בדוק אם זה שגיאת HTTP ספציפית
-        if hasattr(e, 'response'):
-            print(f"\nפרטי HTTP Response:")
-            print(f"Status Code: {e.response.status_code}")
-            print(f"Content: {e.response.text}")
-        
-        return False
+        print(f"שגיאה בבדיקת מודלים: {e}")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python image_generator.py <prompt> [num_images]")
-        sys.exit(1)
-    
-    prompt = sys.argv[1]
-    num_images = int(sys.argv[2]) if len(sys.argv) > 2 else 1
-    
-    # הגבל מספר תמונות למקסימום 4
-    num_images = min(num_images, 4)
-    
-    print("=== מתחיל תהליך יצירת תמונה עם Imagen ===")
-    success = generate_image_imagen(prompt, num_images)
-    
-    if success:
-        print("=== התהליך הושלם בהצלחה ===")
-    else:
-        print("=== התהליך נכשל ===")
-        sys.exit(1)
+    check_quota_and_models()
