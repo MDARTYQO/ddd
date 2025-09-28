@@ -18,7 +18,7 @@ def generate_image(prompt, filename="gemini-native-image.png", max_retries=5):
             print(f"ניסיון {attempt + 1} מתוך {max_retries}...")
             
             response = client.models.generate_content(
-                model="gemini-2.0-flash-preview-image-generation",
+                model="gemini-2.5-flash-image-preview",
                 contents=prompt,
                 config=types.GenerateContentConfig(response_modalities=['IMAGE', 'TEXT'])
             )
