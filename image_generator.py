@@ -4,87 +4,69 @@ from PIL import Image
 from io import BytesIO
 import sys
 import os
-import traceback
 
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-def generate_image(prompt, filename="generated_image.png"):
+def generate_image_imagen(prompt, num_images=1):
     try:
         client = genai.Client()
         
         print(f"שולח בקשה עם הפרומפט: {prompt}")
-        print("מודל: gemini-2.5-flash-image-preview")
+        print(f"מודל: imagen-4.0-generate-001")
+        print(f"מספר תמונות: {num_images}")
         
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-image-preview",
-            contents=[prompt],
+        response = client.models.generate_images(
+            model='imagen-4.0-generate-001',
+            prompt=prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=num_images,
+            )
         )
         
-        print("התקבלה תגובה מהשרת")
-        print(f"מספר מועמדים: {len(response.candidates)}")
+        print(f"התקבלה תגובה עם {len(response.generated_images)} תמונות")
         
-        if not response.candidates:
-            print("אין מועמדים בתגובה")
-            return False
+        for i, generated_image in enumerate(response.generated_images):
+            filename = f"imagen_output_{i+1}.png"
             
-        candidate = response.candidates[0]
-        print(f"מספר חלקים במועמד הראשון: {len(candidate.content.parts)}")
-        
-        for i, part in enumerate(candidate.content.parts):
-            print(f"חלק {i + 1}:")
+            # שמור את התמונה
+            generated_image.image.save(filename)
+            print(f"תמונה {i+1} נשמרה: {filename}")
             
-            if part.text is not None:
-                print(f"  טקסט: {part.text}")
-            elif part.inline_data is not None:
-                print(f"  נתונים inline: {len(part.inline_data.data)} bytes")
-                print(f"  סוג MIME: {part.inline_data.mime_type}")
-                
-                try:
-                    image = Image.open(BytesIO(part.inline_data.data))
-                    image.save(filename)
-                    print(f"  התמונה נשמרה בהצלחה: {filename}")
-                    return True
-                except Exception as img_error:
-                    print(f"  שגיאה בשמירת התמונה: {img_error}")
-                    return False
-            else:
-                print(f"  חלק לא מזוהה: {type(part)}")
+            # אופציונלי - הצג את התמונה (אם אפשר)
+            try:
+                generated_image.image.show()
+            except:
+                print(f"לא ניתן להציג את התמונה {i+1} (אין GUI)")
         
-        print("לא נמצאו נתוני תמונה בתגובה")
-        return False
+        return True
         
     except Exception as e:
         print(f"\n=== פרטי השגיאה המלאים ===")
         print(f"סוג השגיאה: {type(e).__name__}")
         print(f"הודעת השגיאה: {str(e)}")
         
-        # הדפס את כל המידע הטכני
-        print(f"\nStack trace מלא:")
-        traceback.print_exc()
-        
         # בדוק אם זה שגיאת HTTP ספציפית
         if hasattr(e, 'response'):
             print(f"\nפרטי HTTP Response:")
             print(f"Status Code: {e.response.status_code}")
-            print(f"Headers: {dict(e.response.headers)}")
             print(f"Content: {e.response.text}")
         
-        # בדוק אם יש מידע נוסף על השגיאה
-        if hasattr(e, 'details'):
-            print(f"\nפרטים נוספים: {e.details}")
-            
         return False
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python image_generator.py <prompt>")
+        print("Usage: python image_generator.py <prompt> [num_images]")
         sys.exit(1)
     
     prompt = sys.argv[1]
+    num_images = int(sys.argv[2]) if len(sys.argv) > 2 else 1
     
-    print("=== מתחיל תהליך יצירת תמונה ===")
-    success = generate_image(prompt)
+    # הגבל מספר תמונות למקסימום 4
+    num_images = min(num_images, 4)
+    
+    print("=== מתחיל תהליך יצירת תמונה עם Imagen ===")
+    success = generate_image_imagen(prompt, num_images)
     
     if success:
         print("=== התהליך הושלם בהצלחה ===")
