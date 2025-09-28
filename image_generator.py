@@ -9,14 +9,13 @@ import os
 GOOGLE_API_KEY = "AIzaSyBXphJJz9ygt1Jorl15H82HmSgiSyTk7AM"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-def generate_image_simple(prompt, filename="gemini-native-image.png"):
+def generate_image_clean(prompt, filename="gemini-native-image.png"):
     try:
         client = genai.Client()
         
         print(f"שולח בקשה עם הפרומפט: {prompt}")
         print("מודל: gemini-2.0-flash-exp-image-generation")
         
-        # קוד פשוט יותר בלי הגדרות מסובכות
         response = client.models.generate_content(
             model="gemini-2.0-flash-exp-image-generation",
             contents=[prompt],
@@ -29,25 +28,11 @@ def generate_image_simple(prompt, filename="gemini-native-image.png"):
         
         candidate = response.candidates[0]
         
-        # בדוק finish_reason
         if hasattr(candidate, 'finish_reason'):
             print(f"Finish reason: {candidate.finish_reason}")
         
-        # בדוק safety ratings
-        if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
-            print("Safety ratings:")
-            for rating in candidate.safety_ratings:
-                print(f"  {rating.category}: {rating.probability}")
-        
         if candidate.content is None:
-            print("Content הוא None - הבקשה נדחתה כנראה בגלל content policy")
-            
-            # נסה פרומפט מעודן
-            refined_prompt = refine_prompt(prompt)
-            if refined_prompt != prompt:
-                print(f"מנסה פרומפט מעודן: {refined_prompt}")
-                return generate_image_simple(refined_prompt, filename)
-            
+            print("Content הוא None - הבקשה נדחתה")
             return False
         
         for i, part in enumerate(candidate.content.parts):
@@ -67,44 +52,39 @@ def generate_image_simple(prompt, filename="gemini-native-image.png"):
         print(f"שגיאה: {e}")
         return False
 
-def refine_prompt(original_prompt):
-    """מעדן פרומפטים בעייתיים"""
-    
-    # החלפות לפרומפטים יותר מקובלים
-    replacements = {
-        "emma watson": "young woman with short brown hair",
-        "lingerie": "elegant fashion",
-        "underwear": "stylish clothing",
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    }
-    
-    refined = original_prompt.lower()
-    
-    for old, new in replacements.items():
-        if old in refined:
-            refined = refined.replace(old, new)
-            print(f"החלפתי '{old}' ב-'{new}'")
-    
-    return refined
-
-def try_safe_alternatives():
-    """נסה כמה אלטרנטיבות בטוחות"""
-    
-    safe_prompts = [
-        "A portrait of an elegant young woman with short brown hair in sophisticated fashion",
-        "Beautiful actress in classic Hollywood glamour style",
-        "Woman with Emma Watson's hairstyle in vintage elegant dress",
-        "Portrait of a confident woman in fashionable attire"
-    ]
-    
-    for i, prompt in enumerate(safe_prompts):
-        print(f"\n=== מנסה אלטרנטיבה {i+1}: {prompt} ===")
-        success = generate_image_simple(prompt, f"alternative_{i+1}.png")
-        if success:
-            print(f"✅ אלטרנטיבה {i+1} עבדה!")
-            return True
-    
-    return False
+def try_alternative_model(prompt, filename="gemini-native-image.png"):
+    """נסה מודל אחר"""
+    try:
+        client = genai.Client()
+        
+        print("מנסה מודל חלופי: gemini-2.0-flash-preview-image-generation")
+        
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-preview-image-generation",
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                response_modalities=['IMAGE', 'TEXT']
+            )
+        )
+        
+        candidate = response.candidates[0]
+        
+        if candidate.content is None:
+            print("גם המודל החלופי דחה את הבקשה")
+            return False
+        
+        for part in candidate.content.parts:
+            if hasattr(part, 'inline_data') and part.inline_data is not None:
+                image = Image.open(BytesIO(part.inline_data.data))
+                image.save(filename)
+                print(f"התמונה נשמרה עם המודל החלופי: {filename}")
+                return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"המודל החלופי נכשל: {e}")
+        return False
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -113,12 +93,12 @@ if __name__ == "__main__":
     
     prompt = sys.argv[1]
     
-    print("=== מנסה את הפרומפט המקורי ===")
-    success = generate_image_simple(prompt)
+    print("=== מנסה מודל ראשי ===")
+    success = generate_image_clean(prompt)
     
     if not success:
-        print("\n=== הפרומפט המקורי נכשל, מנסה אלטרנטיבות בטוחות ===")
-        success = try_safe_alternatives()
+        print("\n=== מנסה מודל חלופי ===")
+        success = try_alternative_model(prompt)
     
     if success:
         print("=== התהליך הושלם בהצלחה! ===")
