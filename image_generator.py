@@ -8,31 +8,19 @@ import os
 GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-def generate_image_with_person(prompt, filename="gemini-native-image.png"):
+def generate_image_simple(prompt, filename="gemini-native-image.png"):
     try:
         client = genai.Client()
         
         print(f"שולח בקשה עם הפרומפט: {prompt}")
         print("מודל: gemini-2.0-flash-exp-image-generation")
-        print("מאפשר יצירת אנשים: allow_adult")
         
+        # קוד פשוט יותר בלי הגדרות מסובכות
         response = client.models.generate_content(
             model="gemini-2.0-flash-exp-image-generation",
             contents=[prompt],
             config=types.GenerateContentConfig(
-                response_modalities=['IMAGE', 'TEXT'],
-                # הוספת הגדרות מתקדמות
-                generation_config=types.GenerationConfig(
-                    # פרמטרים ליצירת תמונות
-                    response_mime_type="image/png"
-                ),
-                # הגדרות ליצירת אנשים
-                safety_settings=[
-                    types.SafetySetting(
-                        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                        threshold=types.HarmBlockThreshold.BLOCK_ONLY_HIGH
-                    )
-                ]
+                response_modalities=['IMAGE', 'TEXT']
             )
         )
         
@@ -44,17 +32,28 @@ def generate_image_with_person(prompt, filename="gemini-native-image.png"):
         if hasattr(candidate, 'finish_reason'):
             print(f"Finish reason: {candidate.finish_reason}")
         
+        # בדוק safety ratings
+        if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
+            print("Safety ratings:")
+            for rating in candidate.safety_ratings:
+                print(f"  {rating.category}: {rating.probability}")
+        
         if candidate.content is None:
-            print("Content הוא None - הבקשה נדחתה")
+            print("Content הוא None - הבקשה נדחתה כנראה בגלל content policy")
+            
+            # נסה פרומפט מעודן
+            refined_prompt = refine_prompt(prompt)
+            if refined_prompt != prompt:
+                print(f"מנסה פרומפט מעודן: {refined_prompt}")
+                return generate_image_simple(refined_prompt, filename)
+            
             return False
         
         for i, part in enumerate(candidate.content.parts):
-            print(f"Part {i + 1}: {type(part)}")
-            
             if hasattr(part, 'text') and part.text is not None:
-                print(f"  טקסט: {part.text}")
+                print(f"טקסט: {part.text}")
             elif hasattr(part, 'inline_data') and part.inline_data is not None:
-                print(f"  נתוני תמונה: {len(part.inline_data.data)} bytes")
+                print(f"נתוני תמונה: {len(part.inline_data.data)} bytes")
                 
                 image = Image.open(BytesIO(part.inline_data.data))
                 image.save(filename)
@@ -67,39 +66,44 @@ def generate_image_with_person(prompt, filename="gemini-native-image.png"):
         print(f"שגיאה: {e}")
         return False
 
-def try_imagen_api(prompt, filename="gemini-native-image.png"):
-    """נסה עם Imagen API עם הגדרות מתקדמות"""
-    try:
-        client = genai.Client()
-        
-        print(f"מנסה Imagen עם הפרומפט: {prompt}")
-        
-        # נסה עם Imagen API
-        response = client.models.generate_images(
-            model='imagen-4.0-generate-001',
-            prompt=prompt,
-            config=types.GenerateImagesConfig(
-                number_of_images=1,
-                # הגדרות מתקדמות
-                person_generation="allow_adult",  # מאפשר יצירת מבוגרים
-                aspect_ratio="1:1",
-                image_size="1K"
-            )
-        )
-        
-        print("התקבלה תגובה מ-Imagen")
-        
-        if response.generated_images:
-            generated_image = response.generated_images[0]
-            generated_image.image.save(filename)
-            print(f"התמונה נשמרה עם Imagen: {filename}")
+def refine_prompt(original_prompt):
+    """מעדן פרומפטים בעייתיים"""
+    
+    # החלפות לפרומפטים יותר מקובלים
+    replacements = {
+        "emma watson": "young woman with short brown hair",
+        "lingerie": "elegant fashion",
+        "underwear": "stylish clothing",
+        "bikini": "summer outfit"
+    }
+    
+    refined = original_prompt.lower()
+    
+    for old, new in replacements.items():
+        if old in refined:
+            refined = refined.replace(old, new)
+            print(f"החלפתי '{old}' ב-'{new}'")
+    
+    return refined
+
+def try_safe_alternatives():
+    """נסה כמה אלטרנטיבות בטוחות"""
+    
+    safe_prompts = [
+        "A portrait of an elegant young woman with short brown hair in sophisticated fashion",
+        "Beautiful actress in classic Hollywood glamour style",
+        "Woman with Emma Watson's hairstyle in vintage elegant dress",
+        "Portrait of a confident woman in fashionable attire"
+    ]
+    
+    for i, prompt in enumerate(safe_prompts):
+        print(f"\n=== מנסה אלטרנטיבה {i+1}: {prompt} ===")
+        success = generate_image_simple(prompt, f"alternative_{i+1}.png")
+        if success:
+            print(f"✅ אלטרנטיבה {i+1} עבדה!")
             return True
-        
-        return False
-        
-    except Exception as e:
-        print(f"Imagen נכשל: {e}")
-        return False
+    
+    return False
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -108,14 +112,12 @@ if __name__ == "__main__":
     
     prompt = sys.argv[1]
     
-    print("=== מנסה עם הגדרות מתקדמות לאנשים ===")
-    
-    # נסה קודם עם Gemini
-    success = generate_image_with_person(prompt)
+    print("=== מנסה את הפרומפט המקורי ===")
+    success = generate_image_simple(prompt)
     
     if not success:
-        print("\n=== מנסה עם Imagen API ===")
-        success = try_imagen_api(prompt)
+        print("\n=== הפרומפט המקורי נכשל, מנסה אלטרנטיבות בטוחות ===")
+        success = try_safe_alternatives()
     
     if success:
         print("=== התהליך הושלם בהצלחה! ===")
