@@ -8,7 +8,7 @@ import os
 GOOGLE_API_KEY = "AIzaSyCpEuS3QQflHCzj-CB3FtvOPT_lXZvlycI"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
-def generate_image_safe(prompt, filename="generated_image.png"):
+def generate_image_safe(prompt, filename="gemini-native-image.png"):
     try:
         client = genai.Client()
         
