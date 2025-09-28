@@ -5,7 +5,7 @@ from io import BytesIO
 import sys
 import os
 
-GOOGLE_API_KEY = "AIzaSyB_YKFGkAxGAMBVT2plc2jEGhPcFl6IiIw"
+GOOGLE_API_KEY = "AIzaSyCpEuS3QQflHCzj-CB3FtvOPT_lXZvlycI"
 os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 def generate_image_working(prompt, filename="generated_image.png"):
