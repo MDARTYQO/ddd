@@ -1,0 +1,62 @@
+name: Download YouTube Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: 'YouTube video URL'
+        required: true
+        type: string
+
+jobs:
+  download-and-zip:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: pip install yt-dlp
+      
+    - name: Cache FFmpeg Binary
+      uses: actions/cache@v4
+      id: cache-ffmpeg
+      with:
+        path: ffmpeg-static
+        key: ffmpeg-static-ubuntu-v1
+        
+    - name: Download FFmpeg Static Binary
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      run: |
+        wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+        tar -xf ffmpeg-release-amd64-static.tar.xz
+        mv ffmpeg-*-static ffmpeg-static
+        
+    - name: Setup FFmpeg
+      run: |
+        sudo cp ffmpeg-static/ffmpeg /usr/local/bin/
+        sudo chmod +x /usr/local/bin/ffmpeg
+        
+    - name: Download cookies.txt from repository (if exists)
+      run: |
+        if [ -f cookies.txt ]; then
+          echo "cookies.txt found"
+        else
+          echo "No cookies.txt found"
+        fi
+        
+    - name: Download and zip video
+      run: |
+        python download_and_zip.py "${{ github.event.inputs.video_url }}"
+        
+    - name: Upload ZIP artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: youtube-video-zip
+        path: video.zip
