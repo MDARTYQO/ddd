@@ -1,4 +1,4 @@
-name: Download YouTube Video new
+name: Download YouTube Video
 
 on:
   workflow_dispatch:
@@ -13,45 +13,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: pip install yt-dlp
+      - name: Install dependencies
+        run: pip install yt-dlp bgutil-ytdlp-pot-provider
 
-    - name: Cache FFmpeg Binary
-      uses: actions/cache@v4
-      id: cache-ffmpeg
-      with:
-        path: ffmpeg-static
-        key: ffmpeg-static-ubuntu-v1
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
-    - name: Download FFmpeg Static Binary
-      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
-      run: |
-        wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-        tar -xf ffmpeg-release-amd64-static.tar.xz
-        mv ffmpeg-*-static ffmpeg-static
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
-    - name: Setup FFmpeg
-      run: |
-        sudo cp ffmpeg-static/ffmpeg /usr/local/bin/
-        sudo chmod +x /usr/local/bin/ffmpeg
+      - name: Start PO Token provider server
+        run: |
+          git clone --single-branch --branch 2.0.1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/bgutil
+          cd /tmp/bgutil/server
+          deno install --allow-scripts=npm:canvas --frozen
+          deno run --allow-env --allow-net --allow-ffi=. --allow-read=. src/main.ts &
+          sleep 5
+          echo "POT server started"
 
-    - name: Write YouTube cookies
-      if: ${{ secrets.YOUTUBE_COOKIES != '' }}
-      run: echo "${{ secrets.YOUTUBE_COOKIES }}" > cookies.txt
+      - name: Write cookies
+        env:
+          COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          if [ -n "$COOKIES" ]; then
+            printf '%s' "$COOKIES" > cookies.txt
+            echo "cookies.txt written"
+          else
+            echo "No cookies secret found"
+          fi
 
-    - name: Download and zip video
-      run: python download_and_zip.py "${{ github.event.inputs.video_url }}"
+      - name: Download and zip video
+        run: |
+          if [ -f cookies.txt ]; then
+            yt-dlp --remote-components ejs:github --cookies cookies.txt --extractor-args "youtube:player_client=web" -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4" --merge-output-format mp4 -o video.mp4 "${{ github.event.inputs.video_url }}"
+          else
+            yt-dlp --remote-components ejs:github --extractor-args "youtube:player_client=web" -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4" --merge-output-format mp4 -o video.mp4 "${{ github.event.inputs.video_url }}"
+          fi
+          python3 -c "import zipfile,os; z=zipfile.ZipFile('video.zip','w'); z.write('video.mp4'); z.close(); os.remove('video.mp4')"
 
-    - name: Upload ZIP artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: youtube-video-zip
-        path: video.zip
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-video-zip
+          path: video.zip
