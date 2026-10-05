@@ -22,7 +22,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install yt-dlp
+        run: pip install yt-dlp bgutil-ytdlp-pot-provider
 
       - name: Install ffmpeg if not exists
         run: |
@@ -37,6 +37,15 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Start PO Token provider server
+        run: |
+          git clone --single-branch --branch 2.0.1 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/bgutil
+          cd /tmp/bgutil/server
+          deno install --allow-scripts=npm:canvas --frozen
+          deno run --allow-env --allow-net --allow-ffi=. --allow-read=. src/main.ts &
+          sleep 5
+          echo "POT server started"
 
       - name: Download cookies.txt from repository (if exists)
         run: |
