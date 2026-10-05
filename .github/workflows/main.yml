@@ -24,14 +24,10 @@ jobs:
       - name: Install dependencies
         run: pip install yt-dlp bgutil-ytdlp-pot-provider
 
-      - name: Install ffmpeg if not exists
+      - name: Install ffmpeg
         run: |
-          if ! command -v ffmpeg &> /dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          else
-            echo "ffmpeg already installed"
-          fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Install Deno
         uses: denoland/setup-deno@v2
@@ -47,12 +43,15 @@ jobs:
           sleep 5
           echo "POT server started"
 
-      - name: Download cookies.txt from repository (if exists)
+      - name: Write cookies
+        env:
+          COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
-          if [ -f cookies.txt ]; then
-            echo "cookies.txt found"
+          if [ -n "$COOKIES" ]; then
+            echo "$COOKIES" > cookies.txt
+            echo "cookies.txt written"
           else
-            echo "No cookies.txt found"
+            echo "No cookies secret found"
           fi
 
       - name: Download and zip video
