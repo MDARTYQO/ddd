@@ -53,17 +53,4 @@ jobs:
           else
             echo "No cookies secret found"
           fi
-
-      - name: Download and zip video
-        run: |
-          if [ -f cookies.txt ]; then
-            python download_and_zip.py "${{ github.event.inputs.video_url }}" --cookies cookies.txt
-          else
-            python download_and_zip.py "${{ github.event.inputs.video_url }}"
-          fi
-
-      - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: youtube-video-zip
-          path: video.zip
+ 
