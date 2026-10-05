@@ -48,9 +48,40 @@ jobs:
           COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
           if [ -n "$COOKIES" ]; then
-            echo "$COOKIES" > cookies.txt
+            printf '%s' "$COOKIES" > cookies.txt
             echo "cookies.txt written"
           else
             echo "No cookies secret found"
           fi
- 
+
+      - name: Download and zip video
+        run: |
+          if [ -f cookies.txt ]; then
+            yt-dlp --remote-components ejs:github \
+                   --cookies cookies.txt \
+                   --extractor-args "youtube:player_client=web" \
+                   -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4" \
+                   --merge-output-format mp4 \
+                   -o video.mp4 \
+                   "${{ github.event.inputs.video_url }}"
+          else
+            yt-dlp --remote-components ejs:github \
+                   --extractor-args "youtube:player_client=web" \
+                   -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4" \
+                   --merge-output-format mp4 \
+                   -o video.mp4 \
+                   "${{ github.event.inputs.video_url }}"
+          fi
+          python -c "
+          import zipfile, os
+          with zipfile.ZipFile('video.zip', 'w') as z:
+              z.write('video.mp4')
+          os.remove('video.mp4')
+          print('נוצר video.zip')
+          "
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-video-zip
+          path: video.zip
