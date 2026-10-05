@@ -1,4 +1,5 @@
 # דרישות: pip install yt-dlp
+
 import yt_dlp
 import zipfile
 import os
@@ -17,8 +18,16 @@ cookiefile = "cookies.txt" if os.path.exists("cookies.txt") else None
 ydl_opts = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4',
     'outtmpl': output_filename,
-    'merge_output_format': 'mp4'
+    'merge_output_format': 'mp4',
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['web'],
+        }
+    },
+    'compat_opts': set(),
+    'postprocessor_args': [],
 }
+
 if cookiefile:
     ydl_opts['cookiefile'] = cookiefile
 
